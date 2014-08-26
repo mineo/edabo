@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Types where
+module Edabo.Types where
 
 import Control.Applicative ((<$>))
 import Control.Monad (mzero)
