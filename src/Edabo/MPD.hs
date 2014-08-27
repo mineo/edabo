@@ -1,15 +1,12 @@
 module Edabo.MPD where
 
-import Data.Either (lefts, rights)
-import Data.Maybe (fromJust)
-import Edabo.Types (Track, makeTrack)
-import Network.MPD (withMPD,
-                    Response,
-                    Song(..),
-                    sgGetTag,
-                    Metadata(MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID),
-                    toString)
-import Network.MPD.Commands.Extensions (getPlaylist)
+import           Data.Either                     (lefts, rights)
+import           Data.Maybe                      (fromJust)
+import           Edabo.Types                     (Track, makeTrack)
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID),
+                                                  Response, Song (..), sgGetTag,
+                                                  toString, withMPD)
+import           Network.MPD.Commands.Extensions (getPlaylist)
 
 getMPDPlaylist :: IO (Response [Song])
 getMPDPlaylist = withMPD getPlaylist
@@ -23,7 +20,7 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) =
                              Just trackids -> Right $ makeTrack tid rlid
                                                 where tid = toString $ head trackids
                                                       rlid = buildOptional releaseid
-                                                      buildOptional value = 
+                                                      buildOptional value =
                                                             case value of
                                                                  Nothing -> Nothing
                                                                  Just [] -> Nothing

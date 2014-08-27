@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Edabo.Types where
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad (mzero)
-import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, (.:), (.:?), (.=), Value(..), object)
-import Data.Maybe (fromJust)
-import Data.UUID (UUID, fromString)
-import Data.UUID.Aeson ()
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (mzero)
+import           Data.Aeson          (FromJSON, ToJSON, Value (..), object,
+                                      parseJSON, toJSON, (.:), (.:?), (.=))
+import           Data.Maybe          (fromJust)
+import           Data.UUID           (UUID, fromString)
+import           Data.UUID.Aeson     ()
 
 data Track = Track { recordingID :: UUID,
                      releaseID   :: Maybe UUID
