@@ -23,7 +23,7 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) = case sgGetTag MUSICBRAINZ_TR
                                                               ]
 getTrackFromSong Song {sgFilePath = path, sgIndex = Nothing} =
                  Left $ unwords [toString path
-                                , "has no recording id"]
+                                , "has no position in the playlist - weird!"]
 
 
 getTracksFromSongs :: [Song]
