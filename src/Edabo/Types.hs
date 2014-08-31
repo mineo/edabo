@@ -46,7 +46,7 @@ instance FromJSON Playlist where
   parseJSON (Object v) = Playlist
                          <$> v .:  "name"
                          <*> v .:? "description"
-                         <*> v .: "tracklist"
+                         <*> v .:  "tracklist"
   parseJSON _ = mzero
 
 instance ToJSON Playlist where
