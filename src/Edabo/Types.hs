@@ -34,3 +34,20 @@ makeTrack recordingid releaseid = Track
                                   where stringToUUID = fromJust . fromString
                                         stringToMaybeUUID Nothing = Nothing
                                         stringToMaybeUUID (Just rid) = fromString rid
+
+data Playlist = Playlist
+  { name        :: String
+  , description :: Maybe String
+  , tracks      :: [Track]
+  }
+
+instance FromJSON Playlist where
+  parseJSON (Object v) = Playlist
+                         <$> v .:  "name"
+                         <*> v .:? "description"
+                         <*> v .: "tracklist"
+  parseJSON _ = mzero
+
+instance ToJSON Playlist where
+  toJSON (Playlist name desc tracks) =
+    object ["name" .= name, "description" .= desc, "tracklist" .= tracks]
