@@ -9,20 +9,21 @@ import           Data.Maybe          (fromJust)
 import           Data.UUID           (UUID, fromString)
 import           Data.UUID.Aeson     ()
 
-data Track = Track { recordingID :: UUID,
-                     releaseID   :: Maybe UUID
-                   } deriving (Show, Eq)
+data Track = Track
+  { recordingID :: UUID,
+    releaseID   :: Maybe UUID
+  } deriving (Show, Eq)
 
 instance FromJSON Track where
-    parseJSON (Object v) = Track <$>
-                           v .:  "recordingid" <*>
-                           v .:? "releaseid"
+  parseJSON (Object v) = Track
+                         <$> v .:  "recordingid"
+                         <*> v .:? "releaseid"
 
-    parseJSON _ = mzero
+  parseJSON _ = mzero
 
 instance ToJSON Track where
-    toJSON (Track recordingid releaseid) =
-      object ["recordingid" .= recordingid, "releaseid" .= releaseid]
+  toJSON (Track recordingid releaseid) =
+    object ["recordingid" .= recordingid, "releaseid" .= releaseid]
 
 -- | The 'makeTrack' function makes a 'Track' object out of a bunch of MBIDs.
 makeTrack :: String       -- ^ The recording id
