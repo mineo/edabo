@@ -1,6 +1,6 @@
-import Data.Aeson.Encode.Pretty (encodePretty)
-import Edabo.MPD (getTracksFromPlaylist)
-import Edabo.Types (Playlist(Playlist))
+import           Data.Aeson.Encode.Pretty   (encodePretty)
+import           Edabo.MPD                  (getTracksFromPlaylist)
+import           Edabo.Types                (Playlist (Playlist))
 import qualified Data.ByteString.Lazy.Char8 as B
 
 main :: IO ()
