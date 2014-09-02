@@ -4,24 +4,28 @@ import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Edabo.CmdLine.Types        (SaveOptions(..), optPretty)
 import           Edabo.MPD                  (getTracksFromPlaylist)
-import           Edabo.Types                (Playlist (Playlist))
+import           Edabo.Types                (Playlist (Playlist), Track)
 import Data.Aeson.Encode (encode)
 
 list :: IO ()
-list = do
-  tl <- getTracksFromPlaylist
-  case tl of
-    Left e -> putStrLn e
-    Right tracks -> B.putStrLn
-                    $ encodePretty
-                    $ Playlist "current" (Just "the current playlist") tracks
+list = playlistActor (B.putStrLn
+                     . encodePretty
+                     . Playlist "current" (Just "the current playlist")
+                     )
 
 save :: SaveOptions -> IO ()
-save SaveOptions {optPretty = pretty, optPlaylistName = plname} = do
-  tl <- getTracksFromPlaylist
-  case tl of
-    Left e -> putStrLn e
-    Right tracks -> B.putStrLn
-                    $ encoder
-                    $ Playlist plname Nothing tracks
+save SaveOptions {optPretty = pretty
+                  , optPlaylistName = plname } =
+  playlistActor (B.putStrLn
+                . encoder
+                . Playlist plname Nothing)
   where encoder = if pretty then encodePretty else encode
+
+-- | The 'playlistActor' function tries to get the tracklist and (in case that
+-- | didn't work - a Left was returned) prints the error message or applys a function
+-- | to it.
+playlistActor :: ([Track] -> IO ()) -- ^ A function to apply to a list of tracks
+              -> IO ()
+playlistActor f = do
+  tl <- getTracksFromPlaylist
+  either putStrLn f tl
