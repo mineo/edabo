@@ -22,9 +22,9 @@ save SaveOptions {optPretty = pretty
                 . Playlist plname desc)
   where encoder = if pretty then encodePretty else encode
 
--- | The 'playlistActor' function tries to get the tracklist and (in case that
--- | didn't work - a Left was returned) prints the error message or applys a function
--- | to it.
+-- | The 'playlistActor' function tries to get the tracklist and, in case that
+--   didn't work (a Left was returned), prints the error message or applys a
+--   function to it.
 playlistActor :: ([Track] -> IO ()) -- ^ A function to apply to a list of tracks
               -> IO ()
 playlistActor f = do
