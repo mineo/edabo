@@ -1,11 +1,11 @@
 module Edabo.CmdLine.Commands where
 
+import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
-import           Edabo.CmdLine.Types        (SaveOptions(..), optPretty)
+import           Edabo.CmdLine.Types        (SaveOptions (..), optPretty)
 import           Edabo.MPD                  (getTracksFromPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track)
-import Data.Aeson.Encode (encode)
 
 list :: IO ()
 list = playlistActor (B.putStrLn
