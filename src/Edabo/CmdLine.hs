@@ -23,7 +23,8 @@ parseSave = Save
                  )
                  <*> optional (strOption
                  (  long "description"
-                 <> help "the playlist description"))
+                 <> help "the playlist description"
+                 <> metavar "DESCRIPTION"))
                  <*> argument str
                  ( metavar "NAME"
                  <> help "the playlists name"
