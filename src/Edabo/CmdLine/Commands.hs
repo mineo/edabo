@@ -14,7 +14,7 @@ list = do
     Left e -> putStrLn e
     Right tracks -> B.putStrLn
                     $ encodePretty
-                    $ Playlist "current" Nothing tracks
+                    $ Playlist "current" (Just "the current playlist") tracks
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty, optPlaylistName = plname} = do
