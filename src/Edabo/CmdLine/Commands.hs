@@ -27,6 +27,4 @@ save SaveOptions {optPretty = pretty
 --   function to it.
 playlistActor :: ([Track] -> IO ()) -- ^ A function to apply to a list of tracks
               -> IO ()
-playlistActor f = do
-  tl <- getTracksFromPlaylist
-  either putStrLn f tl
+playlistActor f = getTracksFromPlaylist >>= either putStrLn f
