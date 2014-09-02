@@ -15,10 +15,11 @@ list = playlistActor (B.putStrLn
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty
-                  , optPlaylistName = plname } =
+                  , optPlaylistName = plname
+                  , optDescription = desc} =
   playlistActor (B.putStrLn
                 . encoder
-                . Playlist plname Nothing)
+                . Playlist plname desc)
   where encoder = if pretty then encodePretty else encode
 
 -- | The 'playlistActor' function tries to get the tracklist and (in case that

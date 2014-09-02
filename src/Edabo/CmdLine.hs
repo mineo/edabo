@@ -8,7 +8,7 @@ import           Edabo.CmdLine.Types    (Command (..), Options (..),
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
                                          long, metavar, progDesc, pure, short,
-                                         str, subparser, switch)
+                                         optional, str, strOption, subparser, switch)
 
 parseList :: Parser Command
 parseList = pure List
@@ -17,10 +17,13 @@ parseSave :: Parser Command
 parseSave = Save
             <$> (SaveOptions
                  <$> switch
-                 ( long "pretty"
+                 (  long "pretty"
                  <> help "use encodePretty to encode the JSON data - this will\
                          \make it more readable for humans :)"
                  )
+                 <*> optional (strOption
+                 (  long "description"
+                 <> help "the playlist description"))
                  <*> argument str
                  ( metavar "NAME"
                  <> help "the playlists name"
