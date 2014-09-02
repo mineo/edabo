@@ -1,40 +1,39 @@
 module Edabo.CmdLine where
 
-import           Control.Applicative        ((<$>), (<*>))
-import           Data.Aeson.Encode.Pretty   (encodePretty)
-import qualified Data.ByteString.Lazy.Char8 as B
-import           Data.Monoid                ((<>))
-import           Edabo.MPD                  (getTracksFromPlaylist)
-import           Edabo.Types                (Playlist (Playlist))
-import           Options.Applicative        (Parser, command, execParser,
-                                             fullDesc, header, help, helper,
-                                             info, long, progDesc, pure, short,
-                                             subparser, switch)
-
-data Options = Options
-  { optVerbose :: Bool
-  , optCommand :: Command }
-
-data Command
-  = List
-
-list :: IO ()
-list = do
-  tl <- getTracksFromPlaylist
-  case tl of
-    Left e -> putStrLn e
-    Right tracks -> B.putStrLn
-                    $ encodePretty
-                    $ Playlist "current" Nothing tracks
+import           Control.Applicative    ((<$>), (<*>))
+import           Data.Monoid            ((<>))
+import           Edabo.CmdLine.Commands (list, save)
+import           Edabo.CmdLine.Types    (Command (..), Options (..),
+                                         SaveOptions (..))
+import           Options.Applicative    (Parser, argument, command, execParser,
+                                         fullDesc, header, help, helper, info,
+                                         long, metavar, progDesc, pure, short,
+                                         str, subparser, switch)
 
 parseList :: Parser Command
 parseList = pure List
 
+parseSave :: Parser Command
+parseSave = Save
+            <$> (SaveOptions
+                 <$> switch
+                 ( long "pretty"
+                 <> help "use encodePretty to encode the JSON data - this will\
+                         \make it more readable for humans :)"
+                 )
+                 <*> argument str
+                 ( metavar "NAME"
+                 <> help "the playlists name"
+                 )
+            )
+
 subCommandParser :: Parser Command
 subCommandParser = subparser
-           (command "list" (info parseList (progDesc "print the playlist, \
-                                                     \JSON-style"))
+           (command "list" (info (withHelper parseList) (progDesc "print the playlist, \
+                                                                           \JSON-style"))
+           <> command "save" (info (withHelper parseSave) (progDesc "save the playlist"))
            )
+           where withHelper f = helper <*> f
 
 globalParser :: Parser Options
 globalParser = Options
@@ -54,4 +53,5 @@ run :: Options -> IO ()
 run Options {optCommand = cmd} =
   case cmd of
     List -> list
+    Save options -> save options
     _    -> undefined
