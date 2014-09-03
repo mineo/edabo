@@ -19,7 +19,7 @@ parseSave = Save
                  <$> switch
                  (  long "pretty"
                  <> help "use encodePretty to encode the JSON data - this will\
-                         \make it more readable for humans :)"
+                         \ make it more readable for humans :)"
                  )
                  <*> optional (strOption
                  (  long "description"
