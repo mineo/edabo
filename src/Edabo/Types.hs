@@ -53,6 +53,6 @@ instance FromJSON Playlist where
   parseJSON _ = mzero
 
 instance ToJSON Playlist where
-  toJSON (Playlist name desc timestamp tracks) =
-    object ["name" .= name, "description" .= desc, "timestamp" .= timestamp,
-            "tracklist" .= tracks]
+  toJSON (Playlist _name desc _timestamp _tracks) =
+    object ["name" .= _name, "description" .= desc, "timestamp" .= _timestamp,
+            "tracklist" .= _tracks]
