@@ -6,6 +6,7 @@ data Options = Options
 
 data SaveOptions = SaveOptions
   { optPretty       :: Bool
+  , optOverWrite    :: Bool
   , optDescription  :: Maybe String
   , optPlaylistName :: String}
 

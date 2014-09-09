@@ -21,6 +21,10 @@ parseSave = Save
                  <> help "use encodePretty to encode the JSON data - this will\
                          \ make it more readable for humans :)"
                  )
+                 <*> switch
+                 (  long "overwrite"
+                 <> help "overwrite the playlist if it already exists"
+                 )
                  <*> optional (strOption
                  (  long "description"
                  <> help "the playlist description"

@@ -8,6 +8,7 @@ import           Edabo.CmdLine.Types        (SaveOptions (..), optPretty)
 import           Edabo.MPD                  (getTracksFromPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track)
 import           Edabo.Utils                (userdir)
+import           System.Directory           (doesFileExist)
 import           System.FilePath            (combine)
 
 list :: IO ()
@@ -20,15 +21,26 @@ list = do
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty
+                  , optOverWrite = overwrite
                   , optPlaylistName = plname
                   , optDescription = desc} = do
   plpath <- fmap (`combine` plname) userdir
   now <- getCurrentTime
-  playlistActor (writeFile plpath
-                . B.unpack
-                . encoder
-                . Playlist plname desc now)
+  exists <- doesFileExist plpath
+  let writer = write plpath now
+  if exists
+     then if overwrite
+             then sequence_ [putStrLn $ unwords ["Overwriting", plname, "."]
+                             , writer]
+             else putStrLn $ unwords ["Not saving because the playlist"
+                                      , plname
+                                      , "exists."]
+     else writer
   where encoder = if pretty then encodePretty else encode
+        write path time = playlistActor (writeFile path
+                            . B.unpack
+                            . encoder
+                            . Playlist plname desc time)
 
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
 --   didn't work (a Left was returned), prints the error message or (in case a
