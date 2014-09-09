@@ -62,4 +62,3 @@ run Options {optCommand = cmd} =
   case cmd of
     List -> list
     Save options -> save options
-    _    -> undefined
