@@ -6,6 +6,7 @@ import           Control.Monad       (mzero)
 import           Data.Aeson          (FromJSON, ToJSON, Value (..), object,
                                       parseJSON, toJSON, (.:), (.:?), (.=))
 import           Data.Maybe          (fromJust)
+import           Data.Time           (getCurrentTime, UTCTime(..))
 import           Data.UUID           (UUID, fromString)
 import           Data.UUID.Aeson     ()
 
@@ -39,6 +40,7 @@ makeTrack recordingid releaseid = Track
 data Playlist = Playlist
   { name        :: String
   , description :: Maybe String
+  , timestamp   :: UTCTime
   , tracks      :: [Track]
   }
 
@@ -46,9 +48,11 @@ instance FromJSON Playlist where
   parseJSON (Object v) = Playlist
                          <$> v .:  "name"
                          <*> v .:? "description"
+                         <*> v .:  "timestamp"
                          <*> v .:  "tracklist"
   parseJSON _ = mzero
 
 instance ToJSON Playlist where
-  toJSON (Playlist name desc tracks) =
-    object ["name" .= name, "description" .= desc, "tracklist" .= tracks]
+  toJSON (Playlist name desc timestamp tracks) =
+    object ["name" .= name, "description" .= desc, "timestamp" .= timestamp,
+            "tracklist" .= tracks]

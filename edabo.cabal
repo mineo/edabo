@@ -29,6 +29,7 @@ executable edabo
                        optparse-applicative == 0.9.1.1,
                        xdg-basedir == 0.2.2,
                        directory == 1.2.1.0,
-                       filepath == 1.3.0.2
+                       filepath == 1.3.0.2,
+                       time == 1.4.2
   hs-source-dirs:      src
   default-language:    Haskell2010
