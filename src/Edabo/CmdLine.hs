@@ -18,15 +18,18 @@ parseSave = Save
             <$> (SaveOptions
                  <$> switch
                  (  long "pretty"
+                 <> short 'p'
                  <> help "use encodePretty to encode the JSON data - this will\
                          \ make it more readable for humans :)"
                  )
                  <*> switch
                  (  long "overwrite"
+                 <> short 'o'
                  <> help "overwrite the playlist if it already exists"
                  )
                  <*> optional (strOption
                  (  long "description"
+                 <> short 'd'
                  <> help "the playlist description"
                  <> metavar "DESCRIPTION"))
                  <*> argument str
