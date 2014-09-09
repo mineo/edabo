@@ -1,4 +1,7 @@
-import           Edabo.CmdLine              (handleArgs)
+import           Edabo.CmdLine (handleArgs)
+import           Edabo.Utils   (ensureUserDir)
 
 main :: IO ()
-main = handleArgs
+main = do
+  ensureUserDir
+  handleArgs

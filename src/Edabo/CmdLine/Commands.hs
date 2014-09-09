@@ -6,6 +6,8 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import           Edabo.CmdLine.Types        (SaveOptions (..), optPretty)
 import           Edabo.MPD                  (getTracksFromPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track)
+import           Edabo.Utils                (userdir)
+import           System.FilePath            (combine)
 
 list :: IO ()
 list = playlistActor (B.putStrLn
@@ -16,8 +18,10 @@ list = playlistActor (B.putStrLn
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty
                   , optPlaylistName = plname
-                  , optDescription = desc} =
-  playlistActor (B.putStrLn
+                  , optDescription = desc} = do
+  plpath <- fmap (`combine` plname) userdir
+  playlistActor (writeFile plpath
+                . B.unpack
                 . encoder
                 . Playlist plname desc)
   where encoder = if pretty then encodePretty else encode
