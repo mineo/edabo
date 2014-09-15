@@ -7,9 +7,8 @@ import           Data.Time                  (getCurrentTime)
 import           Edabo.CmdLine.Types        (SaveOptions (..), optPretty)
 import           Edabo.MPD                  (getTracksFromPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track)
-import           Edabo.Utils                (userdir)
+import           Edabo.Utils                (makePlaylistFileName)
 import           System.Directory           (doesFileExist)
-import           System.FilePath            (combine)
 
 list :: IO ()
 list = do
@@ -24,7 +23,7 @@ save SaveOptions {optPretty = pretty
                   , optOverWrite = overwrite
                   , optPlaylistName = plname
                   , optDescription = desc} = do
-  plpath <- fmap (`combine` plname) userdir
+  plpath <- makePlaylistFileName plname
   now <- getCurrentTime
   exists <- doesFileExist plpath
   let writer = write plpath now
