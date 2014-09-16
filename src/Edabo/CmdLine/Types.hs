@@ -10,7 +10,12 @@ data SaveOptions = SaveOptions
   , optDescription  :: Maybe String
   , optPlaylistName :: String}
 
+data LoadOptions = LoadOptions
+  { optClear    :: Bool
+  , optPlaylist :: String
+  }
+
 data Command
   = List
   | Save SaveOptions
-
+  | Load LoadOptions

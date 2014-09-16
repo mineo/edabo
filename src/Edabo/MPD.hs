@@ -1,12 +1,20 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Edabo.MPD where
 
 import           Data.Either                     (lefts, rights)
 import           Data.Maybe                      (fromJust)
-import           Edabo.Types                     (Track, makeTrack)
+import           Data.String                     (fromString)
+import qualified Data.UUID                       (toString)
+import           Edabo.Types                     (Playlist (..), Track (..),
+                                                  makeTrack)
 import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID),
-                                                  Response, Song (..), sgGetTag,
-                                                  toString, withMPD)
+                                                  Response, Song (..), clear,
+                                                  findAdd, sgGetTag, toString,
+                                                  withMPD, (=?))
 import           Network.MPD.Commands.Extensions (getPlaylist)
+
+clearMPDPlaylist :: IO (Response ())
+clearMPDPlaylist = withMPD clear
 
 getMPDPlaylist :: IO (Response [Song])
 getMPDPlaylist = withMPD getPlaylist
@@ -49,3 +57,8 @@ getTracksFromPlaylist = do
                                 0 -> Right $ rights tl
                                 _ -> Left  $ unlines tllefts
                               where tllefts = lefts tl
+
+loadMPDPlaylist :: Playlist -> [IO (Response ())]
+loadMPDPlaylist Playlist {tracks = pltracks} = map loadsong pltracks
+  where loadsong :: Track -> IO (Response ())
+        loadsong Track {recordingID = recid} = withMPD $ findAdd $ MUSICBRAINZ_TRACKID =? fromString (Data.UUID.toString recid)

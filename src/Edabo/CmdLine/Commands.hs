@@ -1,11 +1,15 @@
 module Edabo.CmdLine.Commands where
 
+import           Data.Aeson                 (decode)
 import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Time                  (getCurrentTime)
-import           Edabo.CmdLine.Types        (SaveOptions (..), optPretty)
-import           Edabo.MPD                  (getTracksFromPlaylist)
+import           Edabo.CmdLine.Types        (LoadOptions (..), SaveOptions (..),
+                                             optPretty)
+import           Edabo.MPD                  (clearMPDPlaylist,
+                                             getTracksFromPlaylist,
+                                             loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track)
 import           Edabo.Utils                (makePlaylistFileName)
 import           System.Directory           (doesFileExist)
@@ -40,6 +44,25 @@ save SaveOptions {optPretty = pretty
                             . B.unpack
                             . encoder
                             . Playlist plname desc time)
+
+load :: LoadOptions -> IO ()
+load LoadOptions {optClear = clear
+                 , optPlaylist = plname} = do
+   cleared <- if clear then clearMPDPlaylist else return (return ())
+   case cleared of
+     Left e -> print e
+     Right _ -> readPlaylist >>= (\f -> case f of
+                    Nothing       -> putStrLn "Couldn't load it"
+                    Just playlist -> do
+                      _ <- loadPlaylistIgnoringResults playlist
+                      return ()
+                )
+   where readPlaylist :: IO (Maybe Playlist)
+         readPlaylist = readFile plname >>= (return . decode . B.pack)
+         loadPlaylistIgnoringResults :: Playlist -> IO ()
+         loadPlaylistIgnoringResults pl = do
+                        _ <- sequence $ loadMPDPlaylist pl
+                        return ()
 
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
 --   didn't work (a Left was returned), prints the error message or (in case a
