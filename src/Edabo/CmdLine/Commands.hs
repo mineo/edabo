@@ -4,13 +4,17 @@ import           Data.Aeson                 (decode)
 import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
+import           Data.List                  ((\\))
 import           Data.Time                  (getCurrentTime)
+import           Data.UUID                  (UUID)
+import           Data.UUID                  (toString)
 import           Edabo.CmdLine.Types        (LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
-import           Edabo.Types                (Playlist (Playlist), Track)
+import           Edabo.Types                (Playlist (Playlist), Track,
+                                             recordingID, tracks)
 import           Edabo.Utils                (makePlaylistFileName)
 import           System.Directory           (doesFileExist)
 
@@ -55,14 +59,29 @@ load LoadOptions {optClear = clear
                     Nothing       -> putStrLn "Couldn't load it"
                     Just playlist -> do
                       _ <- loadPlaylistIgnoringResults playlist
+                      playlistActor $ checkCompletion $ tracks playlist
                       return ()
                 )
    where readPlaylist :: IO (Maybe Playlist)
          readPlaylist = readFile plname >>= (return . decode . B.pack)
          loadPlaylistIgnoringResults :: Playlist -> IO ()
          loadPlaylistIgnoringResults pl = do
-                        _ <- sequence $ loadMPDPlaylist pl
-                        return ()
+                         _ <- sequence $ loadMPDPlaylist pl
+                         return ()
+         checkCompletion :: [Track] -> [Track] -> IO ()
+         checkCompletion current expected = do
+           let notFounds = checkPlaylistForCompletion current expected
+           case notFounds of
+                [] -> putStrLn "Loaded all tracks"
+                xs -> putStrLn $ unwords (map toString xs) ++ "were not found"
+
+-- | Returns a list of 'UUID's for all recordings that are in 'expected' but
+--   not in 'current'
+checkPlaylistForCompletion :: [Track] -> [Track] -> [UUID]
+checkPlaylistForCompletion current expected =
+   let wanted_ids = map recordingID expected
+       got_ids    = map recordingID current
+   in wanted_ids \\ got_ids
 
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
 --   didn't work (a Left was returned), prints the error message or (in case a
