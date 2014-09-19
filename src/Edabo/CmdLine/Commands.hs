@@ -6,8 +6,7 @@ import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.List                  ((\\))
 import           Data.Time                  (getCurrentTime)
-import           Data.UUID                  (UUID)
-import           Data.UUID                  (toString)
+import           Data.UUID                  (UUID, toString)
 import           Edabo.CmdLine.Types        (LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.MPD                  (clearMPDPlaylist,
