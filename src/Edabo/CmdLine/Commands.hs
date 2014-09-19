@@ -14,8 +14,12 @@ import           Edabo.MPD                  (clearMPDPlaylist,
                                              loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
                                              recordingID, tracks)
-import           Edabo.Utils                (makePlaylistFileName)
-import           System.Directory           (doesFileExist)
+import           Edabo.Utils                (edaboExtension,
+                                             makePlaylistFileName, userdir)
+import           Safe                       (tailDef)
+import           System.Directory           (doesFileExist,
+                                             getDirectoryContents)
+import           System.FilePath            (takeExtension)
 
 list :: IO ()
 list = do
@@ -24,6 +28,10 @@ list = do
                        . encodePretty
                        . Playlist "current" (Just "the current playlist") now
                        )
+
+listPlaylists :: IO ()
+listPlaylists = userdir >>= getDirectoryContents >>= putStrLn . unlines . filterPlaylists
+  where filterPlaylists = filter ((== edaboExtension) . tailDef "" . takeExtension)
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty

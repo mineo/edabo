@@ -17,5 +17,6 @@ data LoadOptions = LoadOptions
 
 data Command
   = List
+  | ListPlaylists
   | Save SaveOptions
   | Load LoadOptions

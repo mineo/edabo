@@ -2,7 +2,7 @@ module Edabo.CmdLine where
 
 import           Control.Applicative    ((<$>), (<*>))
 import           Data.Monoid            ((<>))
-import           Edabo.CmdLine.Commands (list, load, save)
+import           Edabo.CmdLine.Commands (list, listPlaylists, load, save)
 import           Edabo.CmdLine.Types    (Command (..), LoadOptions (..),
                                          Options (..), SaveOptions (..))
 import           Options.Applicative    (Parser, argument, command, execParser,
@@ -13,6 +13,9 @@ import           Options.Applicative    (Parser, argument, command, execParser,
 
 parseList :: Parser Command
 parseList = pure List
+
+parseListPlaylists :: Parser Command
+parseListPlaylists = pure ListPlaylists
 
 parseLoad :: Parser Command
 parseLoad = Load
@@ -58,6 +61,7 @@ subCommandParser = subparser
                                                                            \JSON-style"))
            <> command "save" (info (withHelper parseSave) (progDesc "save the playlist"))
            <> command "load" (info (withHelper parseLoad) (progDesc "load a playlist"))
+           <> command "listplaylists" (info (withHelper parseListPlaylists) (progDesc "list all available playlists"))
            )
            where withHelper f = helper <*> f
 
@@ -79,5 +83,6 @@ run :: Options -> IO ()
 run Options {optCommand = cmd} =
   case cmd of
     List -> list
+    ListPlaylists -> listPlaylists
     Save options -> save options
     Load options -> load options
