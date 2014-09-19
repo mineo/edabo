@@ -1,10 +1,10 @@
 module Edabo.CmdLine.Commands where
 
-import           Data.Aeson                 (decode)
 import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.List                  ((\\))
+import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (getCurrentTime)
 import           Data.UUID                  (UUID, toString)
 import           Edabo.CmdLine.Types        (LoadOptions (..), SaveOptions (..),
@@ -13,9 +13,11 @@ import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
-                                             recordingID, tracks)
+                                             description, name, recordingID,
+                                             tracks)
 import           Edabo.Utils                (edaboExtension,
-                                             makePlaylistFileName, userdir)
+                                             makePlaylistFileName, readPlaylist,
+                                             userdir)
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents)
@@ -30,8 +32,17 @@ list = do
                        )
 
 listPlaylists :: IO ()
-listPlaylists = userdir >>= getDirectoryContents >>= putStrLn . unlines . filterPlaylists
-  where filterPlaylists = filter ((== edaboExtension) . tailDef "" . takeExtension)
+listPlaylists = userdir
+            >>= getDirectoryContents
+            >>= mapM_ printDescription . filterPlaylistFiles
+  where filterPlaylistFiles :: [FilePath] -> [FilePath]
+        filterPlaylistFiles = filter ((== edaboExtension) . tailDef "" . takeExtension)
+        printDescription :: FilePath -> IO ()
+        printDescription filename = makePlaylistFileName filename
+                                >>= readPlaylist
+                                >>= putStrLn . maybe (filename ++ "can't be loaded") printableDescription
+        printableDescription :: Playlist -> String
+        printableDescription pl = name pl ++ " - " ++ fromMaybe "no description" (description pl)
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty
@@ -62,16 +73,14 @@ load LoadOptions {optClear = clear
    cleared <- if clear then clearMPDPlaylist else return (return ())
    case cleared of
      Left e -> print e
-     Right _ -> readPlaylist >>= (\f -> case f of
+     Right _ -> readPlaylist plname >>= (\f -> case f of
                     Nothing       -> putStrLn "Couldn't load it"
                     Just playlist -> do
                       _ <- loadPlaylistIgnoringResults playlist
                       playlistActor $ checkCompletion $ tracks playlist
                       return ()
                 )
-   where readPlaylist :: IO (Maybe Playlist)
-         readPlaylist = readFile plname >>= (return . decode . B.pack)
-         loadPlaylistIgnoringResults :: Playlist -> IO ()
+   where loadPlaylistIgnoringResults :: Playlist -> IO ()
          loadPlaylistIgnoringResults pl = do
                          _ <- sequence $ loadMPDPlaylist pl
                          return ()
