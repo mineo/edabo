@@ -12,4 +12,4 @@ ensureUserDir :: IO ()
 ensureUserDir = userdir >>= createDirectoryIfMissing True
 
 makePlaylistFileName :: FilePath -> IO FilePath
-makePlaylistFileName plname = combine plname <$> userdir
+makePlaylistFileName plname = flip combine plname <$> userdir
