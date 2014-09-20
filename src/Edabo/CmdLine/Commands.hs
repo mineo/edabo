@@ -7,7 +7,8 @@ import           Data.List                  ((\\))
 import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (getCurrentTime)
 import           Data.UUID                  (UUID, toString)
-import           Edabo.CmdLine.Types        (LoadOptions (..), SaveOptions (..),
+import           Edabo.CmdLine.Types        (DeletePlaylistOptions (..),
+                                             LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
@@ -20,8 +21,16 @@ import           Edabo.Utils                (edaboExtension,
                                              userdir)
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
-                                             getDirectoryContents)
+                                             getDirectoryContents, removeFile)
 import           System.FilePath            (takeExtension)
+
+deletePlaylist :: DeletePlaylistOptions -> IO ()
+deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
+  makePlaylistFileName plname >>=
+  \plfilename -> doesFileExist plfilename
+              >>= \doesit -> if doesit
+                                then removeFile plfilename
+                                else putStrLn $ plfilename ++ " doesn't exist"
 
 list :: IO ()
 list = do

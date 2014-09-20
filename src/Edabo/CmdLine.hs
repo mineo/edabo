@@ -2,14 +2,25 @@ module Edabo.CmdLine where
 
 import           Control.Applicative    ((<$>), (<*>))
 import           Data.Monoid            ((<>))
-import           Edabo.CmdLine.Commands (list, listPlaylists, load, save)
-import           Edabo.CmdLine.Types    (Command (..), LoadOptions (..),
-                                         Options (..), SaveOptions (..))
+import           Edabo.CmdLine.Commands (deletePlaylist, list, listPlaylists,
+                                         load, save)
+import           Edabo.CmdLine.Types    (Command (..),
+                                         DeletePlaylistOptions (..),
+                                         LoadOptions (..), Options (..),
+                                         SaveOptions (..))
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
                                          long, metavar, optional, progDesc,
                                          pure, short, str, strOption, subparser,
                                          switch)
+
+parseDeletePlaylist :: Parser Command
+parseDeletePlaylist = DeletePlaylist
+                    <$> (DeletePlaylistOptions
+                        <$> argument str
+                        ( metavar "NAME"
+                        <> help "the name of the playlist to delete"
+                        ))
 
 parseList :: Parser Command
 parseList = pure List
@@ -62,6 +73,7 @@ subCommandParser = subparser
            <> command "save" (info (withHelper parseSave) (progDesc "save the playlist"))
            <> command "load" (info (withHelper parseLoad) (progDesc "load a playlist"))
            <> command "listplaylists" (info (withHelper parseListPlaylists) (progDesc "list all available playlists"))
+           <> command "delete" (info (withHelper parseDeletePlaylist) (progDesc "delete a playlist"))
            )
            where withHelper f = helper <*> f
 
@@ -86,3 +98,4 @@ run Options {optCommand = cmd} =
     ListPlaylists -> listPlaylists
     Save options -> save options
     Load options -> load options
+    DeletePlaylist options -> deletePlaylist options

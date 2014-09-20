@@ -15,8 +15,13 @@ data LoadOptions = LoadOptions
   , optPlaylist :: String
   }
 
+data DeletePlaylistOptions = DeletePlaylistOptions
+  { optPlaylistToDeleteName :: String
+  }
+
 data Command
   = List
   | ListPlaylists
   | Save SaveOptions
   | Load LoadOptions
+  | DeletePlaylist DeletePlaylistOptions
