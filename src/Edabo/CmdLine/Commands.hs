@@ -89,14 +89,14 @@ load LoadOptions {optClear = clear
                     Nothing       -> putStrLn "Couldn't load it"
                     Just playlist -> do
                       let pltracks = tracks playlist
-                      _ <- loadPlaylistIgnoringResults pltracks
+                      void $ loadPlaylistIgnoringResults pltracks
                       playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
                       return ()
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
                          -- first, try to load all tracks via their release track id
-                         _ <- doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
+                         void $ doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
                          -- then try to load the missing ones via their normal recording/track id
                          playlistActor $ \loadedTracks -> completionCase loadedTracks pl (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
                          return ()
