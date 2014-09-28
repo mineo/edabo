@@ -1,12 +1,11 @@
 module Edabo.CmdLine.Commands where
 
+import           Control.Monad              (void)
 import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
-import           Data.List                  ((\\))
 import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (getCurrentTime)
-import           Data.UUID                  (UUID, toString)
 import           Edabo.CmdLine.Types        (DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
                                              optPretty)
@@ -15,10 +14,11 @@ import           Edabo.MPD                  (clearMPDPlaylist,
                                              loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
                                              description, name, recordingID,
-                                             tracks)
+                                             releaseTrackID, tracks)
 import           Edabo.Utils                (edaboExtension,
                                              makePlaylistFileName, readPlaylist,
                                              userdir)
+import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID))
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
@@ -85,28 +85,33 @@ load LoadOptions {optClear = clear
      Right _ -> readPlaylist plname >>= (\f -> case f of
                     Nothing       -> putStrLn "Couldn't load it"
                     Just playlist -> do
-                      _ <- loadPlaylistIgnoringResults playlist
-                      playlistActor $ checkCompletion $ tracks playlist
+                      let pltracks = tracks playlist
+                      _ <- loadPlaylistIgnoringResults pltracks
+                      playlistActor $ reportCompletion pltracks
                       return ()
                 )
-   where loadPlaylistIgnoringResults :: Playlist -> IO ()
+   where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
-                         _ <- sequence $ loadMPDPlaylist pl
+                         _ <- doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
+                         getTracksFromPlaylist >>= \tracks -> case tracks of
+                                                                  Left msg -> putStrLn msg
+                                                                  Right tracks -> case checkPlaylistForCompletion tracks pl of
+                                                                                    [] -> putStrLn "Loaded all tracks!"
+                                                                                    missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID)
                          return ()
-         checkCompletion :: [Track] -> [Track] -> IO ()
-         checkCompletion current expected = do
+         doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
+         reportCompletion current expected = do
            let notFounds = checkPlaylistForCompletion current expected
            case notFounds of
-                [] -> putStrLn "Loaded all tracks"
-                xs -> putStrLn $ unwords (map toString xs) ++ "were not found"
+                [] -> putStrLn "Loaded all tracks!"
+                xs -> putStrLn $ unwords (map show xs) ++ "were not found"
 
--- | Returns a list of 'UUID's for all recordings that are in 'expected' but
---   not in 'current'
-checkPlaylistForCompletion :: [Track] -> [Track] -> [UUID]
+-- | Returns a list of 'Track's recordings that are in 'expected' but not in
+-- 'current'
+checkPlaylistForCompletion :: [Track] -> [Track] -> [Track]
 checkPlaylistForCompletion current expected =
-   let wanted_ids = map recordingID expected
-       got_ids    = map recordingID current
-   in wanted_ids \\ got_ids
+   let got_ids = map recordingID current
+   in filter (\track -> recordingID track `notElem` got_ids) expected
 
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
 --   didn't work (a Left was returned), prints the error message or (in case a
