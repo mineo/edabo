@@ -87,24 +87,21 @@ load LoadOptions {optClear = clear
                     Just playlist -> do
                       let pltracks = tracks playlist
                       _ <- loadPlaylistIgnoringResults pltracks
-                      playlistActor $ reportCompletion pltracks
+                      playlistActor $ \loadedTracks -> completionCase pltracks loadedTracks reportNotFounds
                       return ()
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
                          _ <- doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
-                         getTracksFromPlaylist >>= \tracks -> case tracks of
-                                                                  Left msg -> putStrLn msg
-                                                                  Right tracks -> case checkPlaylistForCompletion tracks pl of
-                                                                                    [] -> putStrLn "Loaded all tracks!"
-                                                                                    missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID)
+                         playlistActor $ \loadedTracks -> completionCase pl loadedTracks (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
                          return ()
          doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
-         reportCompletion current expected = do
-           let notFounds = checkPlaylistForCompletion current expected
-           case notFounds of
-                [] -> putStrLn "Loaded all tracks!"
-                xs -> putStrLn $ unwords (map show xs) ++ "were not found"
+         completionCase current expected f = do
+                         let notFounds = checkPlaylistForCompletion current expected
+                         case notFounds of
+                              [] -> putStrLn "Loaded all tracks!"
+                              xs -> f xs
+         reportNotFounds xs = putStrLn $ unwords (map show xs) ++ "were not found"
 
 -- | Returns a list of 'Track's recordings that are in 'expected' but not in
 -- 'current'
