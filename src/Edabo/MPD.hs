@@ -7,7 +7,9 @@ import           Data.String                     (fromString)
 import qualified Data.UUID                       (toString)
 import           Edabo.Types                     (Playlist (..), Track (..),
                                                   makeTrack)
-import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID),
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID,
+                                                            MUSICBRAINZ_TRACKID,
+                                                            MUSICBRAINZ_RELEASETRACKID),
                                                   Response, Song (..), clear,
                                                   findAdd, sgGetTag, toString,
                                                   withMPD, (=?))
@@ -22,12 +24,14 @@ getMPDPlaylist = withMPD getPlaylist
 getTrackFromSong :: Song
                  -> Either String Track
 getTrackFromSong song@(Song {sgIndex = Just pos}) =
-                      let recordingid = sgGetTag MUSICBRAINZ_TRACKID song
-                          releaseid   = sgGetTag MUSICBRAINZ_ALBUMID song
+                      let recordingid    = sgGetTag MUSICBRAINZ_TRACKID song
+                          releaseid      = sgGetTag MUSICBRAINZ_ALBUMID song
+                          releasetrackid = sgGetTag MUSICBRAINZ_RELEASETRACKID song
                       in case recordingid of
-                             Just trackids -> Right $ makeTrack tid rlid
+                             Just trackids -> Right $ makeTrack tid rlid rltid
                                                 where tid = toString $ head trackids
                                                       rlid = buildOptional releaseid
+                                                      rltid = buildOptional releasetrackid
                                                       buildOptional value =
                                                             case value of
                                                                  Nothing -> Nothing
