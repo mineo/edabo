@@ -2,7 +2,7 @@
 module Edabo.MPD where
 
 import           Data.Either                     (lefts, rights)
-import           Data.Maybe                      (catMaybes, fromJust)
+import           Data.Maybe                      (mapMaybe)
 import           Data.String                     (fromString)
 import qualified Data.UUID                       (toString)
 import qualified Data.UUID as UUID
@@ -63,6 +63,6 @@ getTracksFromPlaylist = do
                               where tllefts = lefts tl
 
 loadMPDPlaylist :: [Track] -> Metadata -> (Track -> Maybe UUID.UUID) -> [IO (Response ())]
-loadMPDPlaylist pltracks meta uuidgetter = map loadsong $ catMaybes $map uuidgetter pltracks
+loadMPDPlaylist pltracks meta uuidgetter = map loadsong $ mapMaybe uuidgetter pltracks
   where loadsong :: UUID.UUID -> IO (Response ())
         loadsong uuid = withMPD $ findAdd $ meta =? fromString (Data.UUID.toString uuid)
