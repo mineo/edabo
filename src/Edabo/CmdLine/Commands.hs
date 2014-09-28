@@ -90,13 +90,15 @@ load LoadOptions {optClear = clear
                     Just playlist -> do
                       let pltracks = tracks playlist
                       _ <- loadPlaylistIgnoringResults pltracks
-                      playlistActor $ \loadedTracks -> completionCase pltracks loadedTracks reportNotFounds
+                      playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
                       return ()
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
+                         -- first, try to load all tracks via their release track id
                          _ <- doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
-                         playlistActor $ \loadedTracks -> completionCase pl loadedTracks (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
+                         -- then try to load the missing ones via their normal recording/track id
+                         playlistActor $ \loadedTracks -> completionCase loadedTracks pl (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
                          return ()
          doLoad :: [Track] -> Metadata -> (Track -> Maybe UUID) -> IO [Response ()]
          doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
