@@ -6,6 +6,7 @@ import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (getCurrentTime)
+import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
                                              optPretty)
@@ -18,7 +19,8 @@ import           Edabo.Types                (Playlist (Playlist), Track,
 import           Edabo.Utils                (edaboExtension,
                                              makePlaylistFileName, readPlaylist,
                                              userdir)
-import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID))
+import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
+                                             Response)
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
@@ -95,6 +97,7 @@ load LoadOptions {optClear = clear
                          _ <- doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
                          playlistActor $ \loadedTracks -> completionCase pl loadedTracks (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
                          return ()
+         doLoad :: [Track] -> Metadata -> (Track -> Maybe UUID) -> IO [Response ()]
          doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
          completionCase current expected f = do
                          let notFounds = checkPlaylistForCompletion current expected
