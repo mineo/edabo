@@ -82,9 +82,10 @@ load :: LoadOptions -> IO ()
 load LoadOptions {optClear = clear
                  , optPlaylist = plname} = do
    cleared <- if clear then clearMPDPlaylist else return (return ())
+   plpath <- makePlaylistFileName plname
    case cleared of
      Left e -> print e
-     Right _ -> readPlaylist plname >>= (\f -> case f of
+     Right _ -> readPlaylist plpath >>= (\f -> case f of
                     Nothing       -> putStrLn "Couldn't load it"
                     Just playlist -> do
                       let pltracks = tracks playlist
