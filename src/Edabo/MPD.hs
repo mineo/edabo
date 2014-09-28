@@ -36,7 +36,7 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) =
                                                             case value of
                                                                  Nothing -> Nothing
                                                                  Just [] -> Nothing
-                                                                 _ -> Just $ toString $ head $ fromJust releaseid
+                                                                 Just v -> Just $ toString $ head v
                              Nothing       -> Left  $ unwords ["Song"
                                                               , show pos
                                                               , "has no recording id"
