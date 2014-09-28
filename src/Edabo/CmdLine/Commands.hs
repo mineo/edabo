@@ -105,7 +105,7 @@ load LoadOptions {optClear = clear
                          case notFounds of
                               [] -> putStrLn "Loaded all tracks!"
                               xs -> f xs
-         reportNotFounds xs = putStrLn $ unwords (map show xs) ++ "were not found"
+         reportNotFounds xs = putStrLn $ unlines (map show xs) ++ "were not found"
 
 -- | Returns a list of 'Track's recordings that are in 'expected' but not in
 -- 'current'
