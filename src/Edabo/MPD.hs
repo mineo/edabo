@@ -4,16 +4,16 @@ module Edabo.MPD where
 import           Data.Either                     (lefts, rights)
 import           Data.Maybe                      (mapMaybe)
 import           Data.String                     (fromString)
+import           Data.UUID                       (UUID)
 import qualified Data.UUID                       (toString)
-import qualified Data.UUID as UUID
-import           Edabo.Types                     (Track (..),  makeTrack)
-import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID,
-                                                            MUSICBRAINZ_TRACKID,
-                                                            MUSICBRAINZ_RELEASETRACKID),
-                                                  Response, Song (..), clear,
-                                                  findAdd, sgGetTag, toString,
-                                                  withMPD, (=?))
+import qualified Data.UUID                       as UUID
+import           Edabo.Types                     (Track (..), makeTrack)
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID),
+                                                  Response, Song (..), add,
+                                                  clear, find, sgGetTag,
+                                                  toString, withMPD, (=?))
 import           Network.MPD.Commands.Extensions (getPlaylist)
+import           Safe                            (headMay)
 
 clearMPDPlaylist :: IO (Response ())
 clearMPDPlaylist = withMPD clear
@@ -64,5 +64,10 @@ getTracksFromPlaylist = do
 
 loadMPDPlaylist :: [Track] -> Metadata -> (Track -> Maybe UUID.UUID) -> [IO (Response ())]
 loadMPDPlaylist pltracks meta uuidgetter = map loadsong $ mapMaybe uuidgetter pltracks
-  where loadsong :: UUID.UUID -> IO (Response ())
-        loadsong uuid = withMPD $ findAdd $ meta =? fromString (Data.UUID.toString uuid)
+  where loadsong :: UUID -> IO (Response ())
+        loadsong uuid = do
+          withMPD $ find $ meta =? fromString (Data.UUID.toString uuid)
+          >>= either (return . Left) addFirst
+        addFirst songs = case headMay songs of
+                           Just s -> withMPD $ add $ sgFilePath s
+                           Nothing -> return $ return ()
