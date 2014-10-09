@@ -54,7 +54,14 @@ listPlaylists = userdir
                                 >>= readPlaylist
                                 >>= putStrLn . maybe (filename ++ "can't be loaded") printableDescription
         printableDescription :: Playlist -> String
-        printableDescription pl = name pl ++ " - " ++ fromMaybe "no description" (description pl)
+        printableDescription pl = unwords [ name pl
+                                          , "-"
+                                          , fromMaybe "no description" (description pl)
+                                          , "("
+                                          , ( show . length . tracks  ) pl
+                                          , "tracks)"
+                                          ]
+
 
 save :: SaveOptions -> IO ()
 save SaveOptions {optPretty = pretty
