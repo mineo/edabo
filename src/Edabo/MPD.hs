@@ -8,12 +8,12 @@ import           Data.UUID                       (UUID)
 import qualified Data.UUID                       (toString)
 import qualified Data.UUID                       as UUID
 import           Edabo.Types                     (Track (..), makeTrack)
-import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID),
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID, Title, Artist),
                                                   Response, Song (..), add,
                                                   clear, find, sgGetTag,
                                                   toString, withMPD, (=?))
 import           Network.MPD.Commands.Extensions (getPlaylist)
-import           Safe                            (headMay)
+import           Safe                            (headMay, headDef)
 
 clearMPDPlaylist :: IO (Response ())
 clearMPDPlaylist = withMPD clear
@@ -39,8 +39,19 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) =
                                                                  Just v -> Just $ toString $ head v
                              Nothing       -> Left  $ unwords ["Song"
                                                               , show pos
+                                                              , "("
+                                                              , show title
+                                                              , "by"
+                                                              , show artist
+                                                              , ")"
                                                               , "has no recording id"
                                                               ]
+                                              where title = metahelper "unknown title" Title
+                                                    artist = metahelper "unknown artist" Artist
+                                                    metahelper defaultvalue meta = maybe defaultvalue
+                                                                                         (headDef defaultvalue . map toString)
+                                                                                         (sgGetTag meta song)
+
 getTrackFromSong Song {sgFilePath = path, sgIndex = Nothing} =
                  Left $ unwords [toString path
                                 , "has no position in the playlist - weird!"]
