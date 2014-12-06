@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Edabo.Types where
 
 import           Control.Applicative ((<$>), (<*>))
@@ -25,9 +26,9 @@ instance FromJSON Track where
   parseJSON _ = mzero
 
 instance ToJSON Track where
-  toJSON (Track recordingid releaseid releasetrackid) =
-    object ["recordingid" .= recordingid, "releaseid" .= releaseid
-           ,"releasetrackid" .= releasetrackid]
+  toJSON Track {..} =
+    object ["recordingid" .= recordingID, "releaseid" .= releaseID
+           ,"releasetrackid" .= releaseTrackID]
 
 -- | The 'makeTrack' function makes a 'Track' object out of a bunch of MBIDs.
 makeTrack :: String       -- ^ The recording id
@@ -58,6 +59,6 @@ instance FromJSON Playlist where
   parseJSON _ = mzero
 
 instance ToJSON Playlist where
-  toJSON (Playlist _name desc _timestamp _tracks) =
-    object ["name" .= _name, "description" .= desc, "timestamp" .= _timestamp,
-            "tracklist" .= _tracks]
+  toJSON Playlist {..} =
+    object ["name" .= name, "description" .= description, "timestamp" .= timestamp,
+            "tracklist" .= tracks]
