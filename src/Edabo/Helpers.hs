@@ -1,8 +1,8 @@
 module Edabo.Helpers where
 
-import Edabo.CmdLine.Types (CommandResult)
-import           Edabo.MPD   (getTracksFromPlaylist)
-import           Edabo.Types (Track (..))
+import           Edabo.CmdLine.Types (CommandResult)
+import           Edabo.MPD           (getTracksFromPlaylist)
+import           Edabo.Types         (Track (..))
 
 -- | Returns a list of 'Track's recordings that are in 'expected' but not in
 -- 'current'
