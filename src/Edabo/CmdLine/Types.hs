@@ -25,3 +25,5 @@ data Command
   | Save SaveOptions
   | Load LoadOptions
   | DeletePlaylist DeletePlaylistOptions
+
+type CommandResult = Either String String

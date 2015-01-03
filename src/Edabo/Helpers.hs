@@ -1,5 +1,6 @@
 module Edabo.Helpers where
 
+import Edabo.CmdLine.Types (CommandResult)
 import           Edabo.MPD   (getTracksFromPlaylist)
 import           Edabo.Types (Track (..))
 
@@ -11,8 +12,7 @@ checkPlaylistForCompletion current expected =
    in filter (\track -> recordingID track `notElem` got_ids) expected
 
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
---   didn't work (a Left was returned), prints the error message or (in case a
---   Right was returned)applys a function to it.
-playlistActor :: ([Track] -> IO ()) -- ^ A function to apply to a list of tracks
-              -> IO ()
-playlistActor f = getTracksFromPlaylist >>= either putStrLn f
+--   didn't work (a Left was returned), returns the Left or (in case a
+--   Right was returned) applys a function to it.
+playlistActor :: ([Track] -> CommandResult) -> IO CommandResult
+playlistActor f = getTracksFromPlaylist >>= either (return . Left) (return . f)

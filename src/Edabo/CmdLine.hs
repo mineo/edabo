@@ -92,10 +92,10 @@ handleArgs = execParser opts >>= run
           )
 
 run :: Options -> IO ()
-run Options {optCommand = cmd} =
-  case cmd of
-    List -> list
-    ListPlaylists -> listPlaylists
-    Save options -> save options
-    Load options -> load options
-    DeletePlaylist options -> deletePlaylist options
+run Options {optCommand = cmd} = runCmd >>= either putStrLn putStrLn
+  where runCmd = case cmd of
+                   List -> list
+                   ListPlaylists -> listPlaylists
+                   Save options -> save options
+                   Load options -> load options
+                   DeletePlaylist options -> deletePlaylist options

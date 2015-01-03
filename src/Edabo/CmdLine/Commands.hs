@@ -4,15 +4,18 @@ import           Control.Monad              (void)
 import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
+import           Data.Either                (partitionEithers)
 import           Data.Maybe                 (fromMaybe)
-import           Data.Time                  (getCurrentTime)
+import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
-import           Edabo.CmdLine.Types        (DeletePlaylistOptions (..),
+import           Edabo.CmdLine.Types        (CommandResult,
+                                             DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist,
+                                             getTracksFromPlaylist,
                                              loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
                                              description, name, recordingID,
@@ -27,32 +30,41 @@ import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
 import           System.FilePath            (takeExtension)
 
-deletePlaylist :: DeletePlaylistOptions -> IO ()
-deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
-  makePlaylistFileName plname >>=
-  \plfilename -> doesFileExist plfilename
-              >>= \doesit -> if doesit
-                                then removeFile plfilename
-                                else putStrLn $ plfilename ++ " doesn't exist"
 
-list :: IO ()
+deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
+deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
+  makePlaylistFileName plname
+  >>= \plfilename -> doesFileExist plfilename
+  >>= \doesit -> if doesit
+                 then remove plfilename
+                 else return $ Left $ plfilename ++ " doesn't exist"
+  where remove :: FilePath -> IO CommandResult
+        remove filename = removeFile filename >> return (Right filename)
+
+list :: IO CommandResult
 list = do
   now <- getCurrentTime
-  playlistActor (B.putStrLn
-                       . encodePretty
-                       . Playlist "current" (Just "the current playlist") now
-                       )
+  playlistActor (Right
+                . B.unpack
+                . encodePretty
+                . Playlist "current" (Just "the current playlist") now
+                )
 
-listPlaylists :: IO ()
+listPlaylists :: IO CommandResult
 listPlaylists = userdir
             >>= getDirectoryContents
-            >>= mapM_ printDescription . filterPlaylistFiles
+            >>= mapM makeDescription . filterPlaylistFiles
+            >>= \ds -> case partitionEithers ds of
+                         ([], rs) -> return $ Right $ unlines rs
+                         (ls, _) -> return $ Left $ unlines ls
   where filterPlaylistFiles :: [FilePath] -> [FilePath]
         filterPlaylistFiles = filter ((== edaboExtension) . tailDef "" . takeExtension)
-        printDescription :: FilePath -> IO ()
-        printDescription filename = makePlaylistFileName filename
-                                >>= readPlaylist
-                                >>= putStrLn . maybe (filename ++ "can't be loaded") printableDescription
+        makeDescription :: FilePath -> IO CommandResult
+        makeDescription filename = makePlaylistFileName filename
+                                    >>= readPlaylist
+                                    >>= \x -> case x  of
+                                                Nothing -> return $ Left $ filename ++ "can't be loaded"
+                                                Just pl -> return $ Right $ printableDescription pl
         printableDescription :: Playlist -> String
         printableDescription pl = unwords [ name pl
                                           , "-"
@@ -63,7 +75,7 @@ listPlaylists = userdir
                                           ]
 
 
-save :: SaveOptions -> IO ()
+save :: SaveOptions -> IO CommandResult
 save SaveOptions {optPretty = pretty
                   , optOverWrite = overwrite
                   , optPlaylistName = plname
@@ -74,46 +86,47 @@ save SaveOptions {optPretty = pretty
   let writer = write plpath now
   if exists
      then if overwrite
-             then sequence_ [putStrLn $ unwords ["Overwriting", plname, "."]
-                             , writer]
-             else putStrLn $ unwords ["Not saving because the playlist"
-                                      , plname
-                                      , "exists."]
+             then writer
+             else return (Left $ unwords ["Not saving because the playlist"
+                                         , plname
+                                         , "exists."])
      else writer
   where encoder = if pretty then encodePretty else encode
-        write path time = playlistActor (writeFile path
-                            . B.unpack
-                            . encoder
-                            . Playlist plname desc time)
+        write :: FilePath -> UTCTime -> IO CommandResult
+        write path time = getTracksFromPlaylist
+                        >>= either (return . Left )
+                                   (\tracks -> writefile path time tracks
+                                            >> return (Right ("Wrote " ++ plname)))
+        writefile :: FilePath -> UTCTime -> [Track] -> IO ()
+        writefile path time tracks = writeFile path $ B.unpack $ encoder $ Playlist plname desc time tracks
 
-load :: LoadOptions -> IO ()
+load :: LoadOptions -> IO CommandResult
 load LoadOptions {optClear = clear
                  , optPlaylist = plname} = do
    cleared <- if clear then clearMPDPlaylist else return (return ())
    plpath <- makePlaylistFileName plname
    case cleared of
-     Left e -> print e
+     (Left l)-> return $ Left $ show l
      Right _ -> readPlaylist plpath >>= (\f -> case f of
-                    Nothing       -> putStrLn "Couldn't load it"
+                    Nothing       -> return $ Left "Couldn't load it"
                     Just playlist -> do
                       let pltracks = tracks playlist
                       void $ loadPlaylistIgnoringResults pltracks
                       playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
-                      return ()
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
                          -- first, try to load all tracks via their release track id
                          void $ doLoad pl MUSICBRAINZ_RELEASETRACKID releaseTrackID
                          -- then try to load the missing ones via their normal recording/track id
-                         playlistActor $ \loadedTracks -> completionCase loadedTracks pl (\missings -> void $ doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
-                         return ()
+                         getTracksFromPlaylist >>= \tracks -> case tracks of
+                                 Left _ -> return ()
+                                 Right tracks -> void $ completionCase tracks pl (\missings -> doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
          doLoad :: [Track] -> Metadata -> (Track -> Maybe UUID) -> IO [Response ()]
          doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
-         completionCase current expected f = do
-                         let notFounds = checkPlaylistForCompletion current expected
-                         case notFounds of
-                              [] -> putStrLn "Loaded all tracks!"
-                              xs -> f xs
-         reportNotFounds xs = putStrLn $ unlines (map show xs) ++ "were not found"
-
+         completionCase :: (Monad m) => [Track] -> [Track] -> ([Track] -> m a) -> m a
+         completionCase current expected f = f $ checkPlaylistForCompletion current expected
+         reportNotFounds :: [Track] -> CommandResult
+         reportNotFounds xs = case xs of
+                                [] -> Right "Loaded all tracks"
+                                (_:_) -> Left $ unlines (map show xs) ++ "were not found"
