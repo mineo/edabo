@@ -13,7 +13,7 @@ import           Edabo.CmdLine.Types        (CommandResult,
                                              LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.Helpers              (checkPlaylistForCompletion,
-                                             playlistActor)
+                                             playlistActor, writePlaylist)
 import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
@@ -91,14 +91,13 @@ save SaveOptions {optPretty = pretty
                                          , plname
                                          , "exists."])
      else writer
-  where encoder = if pretty then encodePretty else encode
-        write :: FilePath -> UTCTime -> IO CommandResult
+  where write :: FilePath -> UTCTime -> IO CommandResult
         write path time = getTracksFromPlaylist
                         >>= either (return . Left )
                                    (\tracks -> writefile path time tracks
                                             >> return (Right ("Wrote " ++ plname)))
         writefile :: FilePath -> UTCTime -> [Track] -> IO ()
-        writefile path time tracks = writeFile path $ B.unpack $ encoder $ Playlist plname desc time tracks
+        writefile path time tracks = writePlaylist pretty $ Playlist plname desc time tracks
 
 load :: LoadOptions -> IO CommandResult
 load LoadOptions {optClear = clear
