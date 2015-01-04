@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
 import           Control.Monad              (void)
@@ -75,34 +76,30 @@ listPlaylists = userdir
 
 
 save :: SaveOptions -> IO CommandResult
-save SaveOptions {optPretty = pretty
-                  , optOverWrite = overwrite
-                  , optPlaylistName = plname
-                  , optDescription = desc} = do
-  plpath <- makePlaylistFileName plname
+save SaveOptions {..} = do
+  plpath <- makePlaylistFileName optPlaylistName
   now <- getCurrentTime
   exists <- doesFileExist plpath
   let writer = write now
   if exists
-     then if overwrite
+     then if optOverWrite
              then writer
              else return (Left $ unwords ["Not saving because the playlist"
-                                         , plname
+                                         , optPlaylistName
                                          , "exists."])
      else writer
   where write :: UTCTime -> IO CommandResult
         write time = getTracksFromPlaylist
                         >>= either (return . Left )
                                    (\tracks -> writefile time tracks
-                                            >> return (Right ("Wrote " ++ plname)))
+                                            >> return (Right ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()
-        writefile time tracks = writePlaylist pretty $ Playlist plname desc time tracks
+        writefile time tracks = writePlaylist optPretty $ Playlist optPlaylistName optDescription time tracks
 
 load :: LoadOptions -> IO CommandResult
-load LoadOptions {optClear = clear
-                 , optPlaylist = plname} = do
-   cleared <- if clear then clearMPDPlaylist else return (return ())
-   plpath <- makePlaylistFileName plname
+load LoadOptions {..} = do
+   cleared <- if optClear then clearMPDPlaylist else return (return ())
+   plpath <- makePlaylistFileName optPlaylist
    case cleared of
      (Left l)-> return $ Left $ show l
      Right _ -> readPlaylist plpath >>= (\f -> case f of
