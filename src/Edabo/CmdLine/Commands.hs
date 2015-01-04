@@ -34,11 +34,9 @@ import           System.FilePath            (takeExtension)
 addToPlaylist :: AddToPlaylistOptions -> IO CommandResult
 addToPlaylist AddToPlaylistOptions {..} = do
   currentplaylist <- if atpOptAll
-                                 then getTracksFromPlaylist
-                                 else currentTrackAsList
-  case currentplaylist of
-    (Left msg) -> return $ Left msg
-    (Right newtracks) -> addTracks newtracks
+                        then getTracksFromPlaylist
+                        else currentTrackAsList
+  either (return . Left) addTracks currentplaylist
   where addTracks :: [Track] -> IO CommandResult
         addTracks tracks = do
             pl <- makePlaylistFileName atpOptPlaylistName >>= readPlaylist
@@ -51,9 +49,7 @@ addToPlaylist AddToPlaylistOptions {..} = do
         currentTrackAsList :: IO (Either String [Track])
         currentTrackAsList = do
           t <- getCurrentTrack
-          case t of
-            (Left msg) -> return $ Left msg
-            (Right track) -> return $ Right [track]
+          either (return . Left) (\track -> return $ Right [track]) t
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
 deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
