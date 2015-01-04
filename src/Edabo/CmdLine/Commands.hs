@@ -82,7 +82,7 @@ save SaveOptions {optPretty = pretty
   plpath <- makePlaylistFileName plname
   now <- getCurrentTime
   exists <- doesFileExist plpath
-  let writer = write plpath now
+  let writer = write now
   if exists
      then if overwrite
              then writer
@@ -90,13 +90,13 @@ save SaveOptions {optPretty = pretty
                                          , plname
                                          , "exists."])
      else writer
-  where write :: FilePath -> UTCTime -> IO CommandResult
-        write path time = getTracksFromPlaylist
+  where write :: UTCTime -> IO CommandResult
+        write time = getTracksFromPlaylist
                         >>= either (return . Left )
-                                   (\tracks -> writefile path time tracks
+                                   (\tracks -> writefile time tracks
                                             >> return (Right ("Wrote " ++ plname)))
-        writefile :: FilePath -> UTCTime -> [Track] -> IO ()
-        writefile path time tracks = writePlaylist pretty $ Playlist plname desc time tracks
+        writefile :: UTCTime -> [Track] -> IO ()
+        writefile time tracks = writePlaylist pretty $ Playlist plname desc time tracks
 
 load :: LoadOptions -> IO CommandResult
 load LoadOptions {optClear = clear
