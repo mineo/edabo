@@ -8,10 +8,15 @@ import           Data.UUID                       (UUID)
 import qualified Data.UUID                       (toString)
 import qualified Data.UUID                       as UUID
 import           Edabo.Types                     (Track (..), makeTrack)
-import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID, Title, Artist),
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID,
+                                                            MUSICBRAINZ_TRACKID,
+                                                            MUSICBRAINZ_RELEASETRACKID,
+                                                            Title,
+                                                            Artist),
                                                   Response, Song (..), add,
                                                   clear, find, sgGetTag,
-                                                  toString, withMPD, (=?))
+                                                  toString, withMPD, (=?),
+                                                  currentSong)
 import           Network.MPD.Commands.Extensions (getPlaylist)
 import           Safe                            (headMay, headDef)
 
@@ -51,15 +56,23 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) =
                                                     metahelper defaultvalue meta = maybe defaultvalue
                                                                                          (headDef defaultvalue . map toString)
                                                                                          (sgGetTag meta song)
-
 getTrackFromSong Song {sgFilePath = path, sgIndex = Nothing} =
                  Left $ unwords [toString path
                                 , "has no position in the playlist - weird!"]
 
+getCurrentTrack :: IO (Either String Track)
+getCurrentTrack = do
+  response <- withMPD currentSong
+  case response of
+    (Left e) -> return $ Left $ show e
+    (Right maybeSong) -> case maybeSong of
+                           Nothing -> return $ Left "Couldn't get the current song"
+                           (Just song) -> return $ getTrackFromSong song
 
 getTracksFromSongs :: [Song]
                    -> [Either String Track]
 getTracksFromSongs = map getTrackFromSong
+
 
 getTracksFromPlaylist :: IO (Either String [Track])
 getTracksFromPlaylist = do

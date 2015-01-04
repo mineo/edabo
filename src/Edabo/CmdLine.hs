@@ -3,16 +3,30 @@ module Edabo.CmdLine where
 import           Control.Applicative    ((<$>), (<*>))
 import           Data.Monoid            ((<>))
 import           Edabo.CmdLine.Commands (deletePlaylist, list, listPlaylists,
-                                         load, save)
+                                         load, save, addToPlaylist)
 import           Edabo.CmdLine.Types    (Command (..),
                                          DeletePlaylistOptions (..),
                                          LoadOptions (..), Options (..),
-                                         SaveOptions (..))
+                                         SaveOptions (..),
+                                         AddToPlaylistOptions(..))
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
                                          long, metavar, optional, progDesc,
                                          pure, short, str, strOption, subparser,
                                          switch)
+
+parseAddToPlaylist :: Parser Command
+parseAddToPlaylist = AddToPlaylist
+                                    <$> (AddToPlaylistOptions
+                                        <$> argument str
+                                        (metavar "NAME"
+                                        <> help "the name of the playlist to add songs to"
+                                        )
+                                        <*> switch
+                                         ( long "all"
+                                         <> short 'a'
+                                         <> help "add all tracks from the current playlist"
+                                        ))
 
 parseDeletePlaylist :: Parser Command
 parseDeletePlaylist = DeletePlaylist
@@ -74,6 +88,7 @@ subCommandParser = subparser
            <> command "load" (info (withHelper parseLoad) (progDesc "load a playlist"))
            <> command "listplaylists" (info (withHelper parseListPlaylists) (progDesc "list all available playlists"))
            <> command "delete" (info (withHelper parseDeletePlaylist) (progDesc "delete a playlist"))
+           <> command "add" (info (withHelper parseAddToPlaylist) (progDesc "add tracks to an existing playlist"))
            )
            where withHelper f = helper <*> f
 
@@ -99,3 +114,4 @@ run Options {optCommand = cmd} = runCmd >>= either putStrLn putStrLn
                    Save options -> save options
                    Load options -> load options
                    DeletePlaylist options -> deletePlaylist options
+                   AddToPlaylist options -> addToPlaylist options

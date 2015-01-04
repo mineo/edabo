@@ -11,12 +11,13 @@ import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (CommandResult,
                                              DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
-                                             optPretty)
+                                             AddToPlaylistOptions (..), optPretty)
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
-                                             loadMPDPlaylist)
+                                             loadMPDPlaylist,
+                                             getCurrentTrack)
 import           Edabo.Types                (Playlist (Playlist), Track,
                                              plDescription, plName, recordingID,
                                              releaseTrackID, plTracks)
@@ -30,6 +31,29 @@ import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
 import           System.FilePath            (takeExtension)
 
+addToPlaylist :: AddToPlaylistOptions -> IO CommandResult
+addToPlaylist AddToPlaylistOptions {..} = do
+  currentplaylist <- if atpOptAll
+                                 then getTracksFromPlaylist
+                                 else currentTrackAsList
+  case currentplaylist of
+    (Left msg) -> return $ Left msg
+    (Right newtracks) -> addTracks newtracks
+  where addTracks :: [Track] -> IO CommandResult
+        addTracks tracks = do
+            pl <- makePlaylistFileName atpOptPlaylistName >>= readPlaylist
+            case pl of
+              Nothing -> return $ Left "Couldn't load"
+              (Just playlist@Playlist{plTracks = currentTracks}) -> do
+                    let newpl = playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks tracks}
+                    void $ writePlaylist False newpl
+                    return $ Right ("Updated " ++ atpOptPlaylistName)
+        currentTrackAsList :: IO (Either String [Track])
+        currentTrackAsList = do
+          t <- getCurrentTrack
+          case t of
+            (Left msg) -> return $ Left msg
+            (Right track) -> return $ Right [track]
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
 deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =

@@ -19,11 +19,17 @@ data DeletePlaylistOptions = DeletePlaylistOptions
   { optPlaylistToDeleteName :: String
   }
 
+data AddToPlaylistOptions = AddToPlaylistOptions
+  { atpOptPlaylistName :: String
+  , atpOptAll          :: Bool
+  }
+
 data Command
   = List
   | ListPlaylists
   | Save SaveOptions
   | Load LoadOptions
   | DeletePlaylist DeletePlaylistOptions
+  | AddToPlaylist AddToPlaylistOptions
 
 type CommandResult = Either String String
