@@ -1,7 +1,6 @@
 module Edabo.CmdLine.Commands where
 
 import           Control.Monad              (void)
-import           Data.Aeson.Encode          (encode)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Either                (partitionEithers)
