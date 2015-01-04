@@ -26,7 +26,7 @@ makePlaylistFileName plname = let filename = if hasExtension plname then plname
                               in flip combine filename <$> userdir
 
 readPlaylist :: FilePath -> IO (Maybe Playlist)
-readPlaylist filename = readFile filename >>= (return . decode . B.pack)
+readPlaylist filename = B.readFile filename >>= (return . decode)
 
 -- | Write a playlist to a file. The filename will be deduced from the playlists
 --   name
@@ -36,4 +36,4 @@ writePlaylist makePretty pl@Playlist{..} = do
                    then encodePretty
                    else encode
   plpath <- makePlaylistFileName plName
-  writeFile plpath $ B.unpack $ encoder pl
+  B.writeFile plpath $ encoder pl
