@@ -13,7 +13,7 @@ import           Edabo.CmdLine.Types        (CommandResult,
                                              LoadOptions (..), SaveOptions (..),
                                              optPretty)
 import           Edabo.Helpers              (checkPlaylistForCompletion,
-                                             playlistActor, writePlaylist)
+                                             playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
@@ -22,7 +22,7 @@ import           Edabo.Types                (Playlist (Playlist), Track,
                                              releaseTrackID, tracks)
 import           Edabo.Utils                (edaboExtension,
                                              makePlaylistFileName, readPlaylist,
-                                             userdir)
+                                             userdir, writePlaylist)
 import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
                                              Response)
 import           Safe                       (tailDef)
@@ -107,11 +107,11 @@ load LoadOptions {optClear = clear
    case cleared of
      (Left l)-> return $ Left $ show l
      Right _ -> readPlaylist plpath >>= (\f -> case f of
-                    Nothing       -> return $ Left "Couldn't load it"
-                    Just playlist -> do
-                      let pltracks = tracks playlist
-                      void $ loadPlaylistIgnoringResults pltracks
-                      playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
+                  Nothing       -> return $ Left "Couldn't load it"
+                  Just playlist -> do
+                    let pltracks = plTracks playlist
+                    void $ loadPlaylistIgnoringResults pltracks
+                    playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
