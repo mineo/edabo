@@ -5,7 +5,7 @@ import           Control.Applicative            ((<$>))
 import           Data.Aeson                     (decode)
 import           Data.Aeson.Encode              (encode)
 import           Data.Aeson.Encode.Pretty       (encodePretty)
-import qualified Data.ByteString.Lazy.Char8     as B
+import qualified Data.ByteString.Lazy           as B
 import           Edabo.Types                    (Playlist (..))
 import           System.Directory               (createDirectoryIfMissing)
 import           System.Environment.XDG.BaseDir (getUserDataFile)
