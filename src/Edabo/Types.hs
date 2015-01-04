@@ -44,10 +44,10 @@ makeTrack recordingid releaseid releasetrackid = Track
                                                        stringToMaybeUUID (Just rid) = fromString rid
 
 data Playlist = Playlist
-  { name        :: String
-  , description :: Maybe String
-  , timestamp   :: UTCTime
-  , tracks      :: [Track]
+  { plName        :: String
+  , plDescription :: Maybe String
+  , plTimestamp   :: UTCTime
+  , plTracks      :: [Track]
   }
 
 instance FromJSON Playlist where
@@ -60,5 +60,5 @@ instance FromJSON Playlist where
 
 instance ToJSON Playlist where
   toJSON Playlist {..} =
-    object ["name" .= name, "description" .= description, "timestamp" .= timestamp,
-            "tracklist" .= tracks]
+    object ["name" .= plName, "description" .= plDescription,
+            "timestamp" .= plTimestamp, "tracklist" .= plTracks]

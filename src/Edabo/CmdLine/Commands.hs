@@ -18,8 +18,8 @@ import           Edabo.MPD                  (clearMPDPlaylist,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
-                                             description, name, recordingID,
-                                             releaseTrackID, tracks)
+                                             plDescription, plName, recordingID,
+                                             releaseTrackID, plTracks)
 import           Edabo.Utils                (edaboExtension,
                                              makePlaylistFileName, readPlaylist,
                                              userdir, writePlaylist)
@@ -66,11 +66,11 @@ listPlaylists = userdir
                                                 Nothing -> return $ Left $ filename ++ "can't be loaded"
                                                 Just pl -> return $ Right $ printableDescription pl
         printableDescription :: Playlist -> String
-        printableDescription pl = unwords [ name pl
+        printableDescription pl = unwords [ plName pl
                                           , "-"
-                                          , fromMaybe "no description" (description pl)
+                                          , fromMaybe "no description" (plDescription pl)
                                           , "("
-                                          , ( show . length . tracks  ) pl
+                                          , ( show . length . plTracks  ) pl
                                           , "tracks)"
                                           ]
 
@@ -107,11 +107,11 @@ load LoadOptions {optClear = clear
    case cleared of
      (Left l)-> return $ Left $ show l
      Right _ -> readPlaylist plpath >>= (\f -> case f of
-                  Nothing       -> return $ Left "Couldn't load it"
-                  Just playlist -> do
-                    let pltracks = plTracks playlist
-                    void $ loadPlaylistIgnoringResults pltracks
-                    playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
+                    Nothing       -> return $ Left "Couldn't load it"
+                    Just playlist -> do
+                      let pltracks = plTracks playlist
+                      void $ loadPlaylistIgnoringResults pltracks
+                      playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
                 )
    where loadPlaylistIgnoringResults :: [Track] -> IO ()
          loadPlaylistIgnoringResults pl = do
