@@ -17,24 +17,24 @@ import           Options.Applicative    (Parser, argument, command, execParser,
 
 parseAddToPlaylist :: Parser Command
 parseAddToPlaylist = AddToPlaylist
-                                    <$> (AddToPlaylistOptions
-                                        <$> argument str
-                                        (metavar "NAME"
-                                        <> help "the name of the playlist to add songs to"
-                                        )
-                                        <*> switch
-                                         ( long "all"
-                                         <> short 'a'
-                                         <> help "add all tracks from the current playlist"
-                                        ))
+                     <$> (AddToPlaylistOptions
+                         <$> argument str
+                         (metavar "NAME"
+                         <> help "the name of the playlist to add songs to"
+                         )
+                         <*> switch
+                          ( long "all"
+                          <> short 'a'
+                          <> help "add all tracks from the current playlist"
+                         ))
 
 parseDeletePlaylist :: Parser Command
 parseDeletePlaylist = DeletePlaylist
-                    <$> (DeletePlaylistOptions
-                        <$> argument str
-                        ( metavar "NAME"
-                        <> help "the name of the playlist to delete"
-                        ))
+                      <$> (DeletePlaylistOptions
+                          <$> argument str
+                          ( metavar "NAME"
+                          <> help "the name of the playlist to delete"
+                          ))
 
 parseList :: Parser Command
 parseList = pure List
