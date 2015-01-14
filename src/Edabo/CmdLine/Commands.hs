@@ -11,7 +11,7 @@ import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (CommandResult,
                                              DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
-                                             AddToPlaylistOptions (..), optPretty)
+                                             AddToPlaylistOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist,
@@ -44,7 +44,7 @@ addToPlaylist AddToPlaylistOptions {..} = do
               Nothing -> return $ Left "Couldn't load"
               (Just playlist@Playlist{plTracks = currentTracks}) -> do
                     let newpl = playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks tracks}
-                    void $ writePlaylist False newpl
+                    void $ writePlaylist newpl
                     return $ Right ("Updated " ++ atpOptPlaylistName)
         currentTrackAsList :: IO (Either String [Track])
         currentTrackAsList = do
@@ -114,7 +114,7 @@ save SaveOptions {..} = do
                                    (\tracks -> writefile time tracks
                                             >> return (Right ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()
-        writefile time tracks = writePlaylist optPretty $ Playlist optPlaylistName optDescription time tracks
+        writefile time tracks = writePlaylist $ Playlist optPlaylistName optDescription time tracks
 
 load :: LoadOptions -> IO CommandResult
 load LoadOptions {..} = do

@@ -4,7 +4,6 @@ module Edabo.Utils where
 import           Control.Applicative            ((<$>))
 import           Data.Aeson                     (decode)
 import           Data.Aeson.Encode              (encode)
-import           Data.Aeson.Encode.Pretty       (encodePretty)
 import qualified Data.ByteString.Lazy           as B
 import           Edabo.Types                    (Playlist (..))
 import           System.Directory               (createDirectoryIfMissing)
@@ -30,10 +29,7 @@ readPlaylist filename = B.readFile filename >>= (return . decode)
 
 -- | Write a playlist to a file. The filename will be deduced from the playlists
 --   name
-writePlaylist :: Bool -> Playlist -> IO ()
-writePlaylist makePretty pl@Playlist{..} = do
-  let encoder = if makePretty
-                   then encodePretty
-                   else encode
+writePlaylist :: Playlist -> IO ()
+writePlaylist pl@Playlist{..} = do
   plpath <- makePlaylistFileName plName
-  B.writeFile plpath $ encoder pl
+  B.writeFile plpath $ encode pl
