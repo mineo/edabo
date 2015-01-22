@@ -11,7 +11,8 @@ import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (CommandResult,
                                              DeletePlaylistOptions (..),
                                              LoadOptions (..), SaveOptions (..),
-                                             AddToPlaylistOptions (..))
+                                             AddToPlaylistOptions (..),
+                                             EditPlaylistOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist,
@@ -144,3 +145,13 @@ load LoadOptions {..} = do
          reportNotFounds xs = case xs of
                                 [] -> Right "Loaded all tracks"
                                 (_:_) -> Left $ unlines (map show xs) ++ "were not found"
+
+
+edit :: EditPlaylistOptions -> IO CommandResult
+edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing to update"
+edit EditPlaylistOptions {..} = do
+  pl <- readPlaylistByName epName
+  case pl of
+    Nothing -> return $ Left "Couldn't read the playlist"
+    (Just playlist) -> doWrite playlist >> return (Right $ "Updated " ++ epName)
+  where doWrite p = writePlaylist $ p { plDescription = epDescription }

@@ -5,7 +5,7 @@ data Options = Options
   , optCommand :: Command }
 
 data SaveOptions = SaveOptions
-  {  optOverWrite    :: Bool
+  {  optOverWrite   :: Bool
   , optDescription  :: Maybe String
   , optPlaylistName :: String}
 
@@ -23,6 +23,11 @@ data AddToPlaylistOptions = AddToPlaylistOptions
   , atpOptAll          :: Bool
   }
 
+data EditPlaylistOptions = EditPlaylistOptions
+  { epName        :: String
+  , epDescription :: Maybe String
+ }
+
 data Command
   = List
   | ListPlaylists
@@ -30,5 +35,6 @@ data Command
   | Load LoadOptions
   | DeletePlaylist DeletePlaylistOptions
   | AddToPlaylist AddToPlaylistOptions
+  | EditPlaylist EditPlaylistOptions
 
 type CommandResult = Either String String
