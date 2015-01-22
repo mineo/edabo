@@ -62,6 +62,15 @@ deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
   where remove :: FilePath -> IO CommandResult
         remove filename = removeFile filename >> return (Right filename)
 
+edit :: EditPlaylistOptions -> IO CommandResult
+edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing to update"
+edit EditPlaylistOptions {..} = do
+  pl <- readPlaylistByName epName
+  case pl of
+    Nothing -> return $ Left "Couldn't read the playlist"
+    (Just playlist) -> doWrite playlist >> return (Right $ "Updated " ++ epName)
+  where doWrite p = writePlaylist $ p { plDescription = epDescription }
+
 list :: IO CommandResult
 list = do
   now <- getCurrentTime
@@ -94,28 +103,6 @@ listPlaylists = userdir
                                           , "tracks)"
                                           ]
 
-
-save :: SaveOptions -> IO CommandResult
-save SaveOptions {..} = do
-  plpath <- makePlaylistFileName optPlaylistName
-  now <- getCurrentTime
-  exists <- doesFileExist plpath
-  let writer = write now
-  if exists
-     then if optOverWrite
-             then writer
-             else return (Left $ unwords ["Not saving because the playlist"
-                                         , optPlaylistName
-                                         , "exists."])
-     else writer
-  where write :: UTCTime -> IO CommandResult
-        write time = getTracksFromPlaylist
-                        >>= either (return . Left )
-                                   (\tracks -> writefile time tracks
-                                            >> return (Right ("Wrote " ++ optPlaylistName)))
-        writefile :: UTCTime -> [Track] -> IO ()
-        writefile time tracks = writePlaylist $ Playlist optPlaylistName optDescription time tracks
-
 load :: LoadOptions -> IO CommandResult
 load LoadOptions {..} = do
    cleared <- if optClear then clearMPDPlaylist else return (return ())
@@ -146,11 +133,24 @@ load LoadOptions {..} = do
                                 (_:_) -> Left $ unlines (map show xs) ++ "were not found"
 
 
-edit :: EditPlaylistOptions -> IO CommandResult
-edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing to update"
-edit EditPlaylistOptions {..} = do
-  pl <- readPlaylistByName epName
-  case pl of
-    Nothing -> return $ Left "Couldn't read the playlist"
-    (Just playlist) -> doWrite playlist >> return (Right $ "Updated " ++ epName)
-  where doWrite p = writePlaylist $ p { plDescription = epDescription }
+
+save :: SaveOptions -> IO CommandResult
+save SaveOptions {..} = do
+  plpath <- makePlaylistFileName optPlaylistName
+  now <- getCurrentTime
+  exists <- doesFileExist plpath
+  let writer = write now
+  if exists
+     then if optOverWrite
+             then writer
+             else return (Left $ unwords ["Not saving because the playlist"
+                                         , optPlaylistName
+                                         , "exists."])
+     else writer
+  where write :: UTCTime -> IO CommandResult
+        write time = getTracksFromPlaylist
+                        >>= either (return . Left )
+                                   (\tracks -> writefile time tracks
+                                            >> return (Right ("Wrote " ++ optPlaylistName)))
+        writefile :: UTCTime -> [Track] -> IO ()
+        writefile time tracks = writePlaylist $ Playlist optPlaylistName optDescription time tracks
