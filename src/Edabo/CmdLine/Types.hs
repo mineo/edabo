@@ -21,6 +21,7 @@ data DeletePlaylistOptions = DeletePlaylistOptions
 data AddToPlaylistOptions = AddToPlaylistOptions
   { atpOptPlaylistName :: String
   , atpOptAll          :: Bool
+  , atpOptCreate       :: Bool
   }
 
 data EditPlaylistOptions = EditPlaylistOptions

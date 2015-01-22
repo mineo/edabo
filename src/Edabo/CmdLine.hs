@@ -27,7 +27,11 @@ parseAddToPlaylist = AddToPlaylist
                           ( long "all"
                           <> short 'a'
                           <> help "add all tracks from the current playlist"
-                         ))
+                         )
+                         <*> switch
+                          ( long "create"
+                          <> short 'c'
+                          <> help "if the playlist doesn't exist, create it"))
 
 parseDeletePlaylist :: Parser Command
 parseDeletePlaylist = DeletePlaylist

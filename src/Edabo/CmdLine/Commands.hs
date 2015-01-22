@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
-import           Control.Monad              (void)
+import           Control.Monad              (void, liftM)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Either                (partitionEithers)
@@ -40,17 +40,43 @@ addToPlaylist AddToPlaylistOptions {..} = do
   either (return . Left) addTracks currentplaylist
   where addTracks :: [Track] -> IO CommandResult
         addTracks tracks = do
-            pl <- readPlaylistByName atpOptPlaylistName
-            case pl of
-              Nothing -> return $ Left "Couldn't load"
-              (Just playlist@Playlist{plTracks = currentTracks}) -> do
-                    let newpl = playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks tracks}
-                    void $ writePlaylist newpl
-                    return $ Right ("Updated " ++ atpOptPlaylistName)
+            pl <- loadPlaylist atpOptCreate atpOptPlaylistName
+            either (return . Left ) (update tracks) pl
         currentTrackAsList :: IO (Either String [Track])
         currentTrackAsList = do
           t <- getCurrentTrack
           either (return . Left) (\track -> return $ Right [track]) t
+        -- | Load the playlist we want to manipulate from a local file
+        loadPlaylist :: Bool -- ^ Whether the file should be created if necessary
+                     -> FilePath -- ^ The name of the playlist
+                     -> IO (Either String Playlist)
+        loadPlaylist create name = do
+          filename <- makePlaylistFileName name
+          exists <- doesFileExist filename
+          if exists
+            then liftM readPlaylistCase (readPlaylistByName name)
+            else createOrMsg name create
+        -- | Convert from 'Maybe Playlist' to 'Either String Playlist'
+        readPlaylistCase :: Maybe Playlist -> Either String Playlist
+        readPlaylistCase Nothing = Left "Could not read the playlist"
+        readPlaylistCase (Just pl) = Right pl
+        -- | Either create a new playlist file or return a message stating that
+        --   the playlist doesn't exist.
+        createOrMsg :: FilePath -- ^ The playlists name
+                    -> Bool -- ^ Whether to create it
+                    -> IO (Either String Playlist)
+        createOrMsg name False = return $ Left $ name ++ " does not exist"
+        createOrMsg name True  = do
+          time <- getCurrentTime
+          return $ Right $ Playlist name Nothing  time []
+        -- | Update the tracklist and save it
+        update :: [Track] -- ^ The new tracks
+               -> Playlist -- ^ The playlist that's about to be updated
+               -> IO CommandResult
+        update newtracks playlist@Playlist{plTracks = currentTracks} = do
+          let newpl = playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
+          void $ writePlaylist newpl
+          return $ Right ("Updated " ++ atpOptPlaylistName)
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
 deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
@@ -131,8 +157,6 @@ load LoadOptions {..} = do
          reportNotFounds xs = case xs of
                                 [] -> Right "Loaded all tracks"
                                 (_:_) -> Left $ unlines (map show xs) ++ "were not found"
-
-
 
 save :: SaveOptions -> IO CommandResult
 save SaveOptions {..} = do
