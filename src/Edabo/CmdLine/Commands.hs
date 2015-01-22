@@ -8,24 +8,23 @@ import           Data.Either                (partitionEithers)
 import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
-import           Edabo.CmdLine.Types        (CommandResult,
+import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
+                                             CommandResult,
                                              DeletePlaylistOptions (..),
-                                             LoadOptions (..), SaveOptions (..),
-                                             AddToPlaylistOptions (..),
-                                             EditPlaylistOptions (..))
+                                             EditPlaylistOptions (..),
+                                             LoadOptions (..), SaveOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
-import           Edabo.MPD                  (clearMPDPlaylist,
+import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
                                              getTracksFromPlaylist,
-                                             loadMPDPlaylist,
-                                             getCurrentTrack)
+                                             loadMPDPlaylist)
 import           Edabo.Types                (Playlist (Playlist), Track,
-                                             plDescription, plName, recordingID,
-                                             releaseTrackID, plTracks)
+                                             plDescription, plName, plTracks,
+                                             recordingID, releaseTrackID)
 import           Edabo.Utils                (edaboExtension,
                                              makePlaylistFileName,
-                                             readPlaylistByName,
-                                             userdir, writePlaylist)
+                                             readPlaylistByName, userdir,
+                                             writePlaylist)
 import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
                                              Response)
 import           Safe                       (tailDef)
