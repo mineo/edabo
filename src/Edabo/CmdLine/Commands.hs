@@ -22,7 +22,8 @@ import           Edabo.Types                (Playlist (Playlist), Track,
                                              plDescription, plName, recordingID,
                                              releaseTrackID, plTracks)
 import           Edabo.Utils                (edaboExtension,
-                                             makePlaylistFileName, readPlaylist,
+                                             makePlaylistFileName,
+                                             readPlaylistByName,
                                              userdir, writePlaylist)
 import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
                                              Response)
@@ -39,7 +40,7 @@ addToPlaylist AddToPlaylistOptions {..} = do
   either (return . Left) addTracks currentplaylist
   where addTracks :: [Track] -> IO CommandResult
         addTracks tracks = do
-            pl <- makePlaylistFileName atpOptPlaylistName >>= readPlaylist
+            pl <- readPlaylistByName atpOptPlaylistName
             case pl of
               Nothing -> return $ Left "Couldn't load"
               (Just playlist@Playlist{plTracks = currentTracks}) -> do
@@ -80,8 +81,7 @@ listPlaylists = userdir
   where filterPlaylistFiles :: [FilePath] -> [FilePath]
         filterPlaylistFiles = filter ((== edaboExtension) . tailDef "" . takeExtension)
         makeDescription :: FilePath -> IO CommandResult
-        makeDescription filename = makePlaylistFileName filename
-                                    >>= readPlaylist
+        makeDescription filename =  readPlaylistByName filename
                                     >>= \x -> case x  of
                                                 Nothing -> return $ Left $ filename ++ "can't be loaded"
                                                 Just pl -> return $ Right $ printableDescription pl
@@ -119,10 +119,9 @@ save SaveOptions {..} = do
 load :: LoadOptions -> IO CommandResult
 load LoadOptions {..} = do
    cleared <- if optClear then clearMPDPlaylist else return (return ())
-   plpath <- makePlaylistFileName optPlaylist
    case cleared of
      (Left l)-> return $ Left $ show l
-     Right _ -> readPlaylist plpath >>= (\f -> case f of
+     Right _ -> readPlaylistByName optPlaylist >>= (\f -> case f of
                     Nothing       -> return $ Left "Couldn't load it"
                     Just playlist -> do
                       let pltracks = plTracks playlist

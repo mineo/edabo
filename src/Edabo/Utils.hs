@@ -27,6 +27,9 @@ makePlaylistFileName plname = let filename = if hasExtension plname then plname
 readPlaylist :: FilePath -> IO (Maybe Playlist)
 readPlaylist filename = B.readFile filename >>= (return . decode)
 
+readPlaylistByName :: FilePath -> IO (Maybe Playlist)
+readPlaylistByName name = makePlaylistFileName name >>= readPlaylist
+
 -- | Write a playlist to a file. The filename will be deduced from the playlists
 --   name
 writePlaylist :: Playlist -> IO ()
