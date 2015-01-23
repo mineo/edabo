@@ -2,6 +2,7 @@
 module Edabo.Utils where
 
 import           Control.Applicative            ((<$>))
+import           Control.Monad                  (liftM)
 import           Data.Aeson                     (decode)
 import           Data.Aeson.Encode              (encode)
 import qualified Data.ByteString.Lazy           as B
@@ -25,7 +26,7 @@ makePlaylistFileName plname = let filename = if hasExtension plname then plname
                               in flip combine filename <$> userdir
 
 readPlaylist :: FilePath -> IO (Maybe Playlist)
-readPlaylist filename = B.readFile filename >>= (return . decode)
+readPlaylist filename = liftM decode (B.readFile filename)
 
 readPlaylistByName :: FilePath -> IO (Maybe Playlist)
 readPlaylistByName name = makePlaylistFileName name >>= readPlaylist
