@@ -121,7 +121,7 @@ handleArgs = execParser opts >>= run
           )
 
 run :: Options -> IO ()
-run Options {optCommand = cmd} = runCmd >>= either putStrLn putStrLn
+run Options {optCommand = cmd} = runCmd >>= either print putStrLn
   where runCmd = case cmd of
                    List -> list
                    ListPlaylists -> listPlaylists

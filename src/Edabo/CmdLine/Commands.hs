@@ -12,7 +12,8 @@ import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              CommandResult,
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
-                                             LoadOptions (..), SaveOptions (..))
+                                             LoadOptions (..), SaveOptions (..),
+                                             CommandError (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
@@ -37,11 +38,11 @@ addToPlaylist AddToPlaylistOptions {..} = do
   currentplaylist <- if atpOptAll
                         then getTracksFromPlaylist
                         else currentTrackAsList
-  either (return . Left) addTracks currentplaylist
+  either (return . Left . OtherError) addTracks currentplaylist
   where addTracks :: [Track] -> IO CommandResult
         addTracks tracks = do
             pl <- loadPlaylist atpOptCreate atpOptPlaylistName
-            either (return . Left ) (update tracks) pl
+            either (return . Left . OtherError) (update tracks) pl
         currentTrackAsList :: IO (Either String [Track])
         currentTrackAsList = do
           t <- getCurrentTrack
@@ -84,7 +85,7 @@ deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
   >>= \plfilename -> doesFileExist plfilename
   >>= \doesit -> if doesit
                  then remove plfilename
-                 else return $ Left $ plfilename ++ " doesn't exist"
+                 else return $ Left $ PlaylistDoesNotExist plname
   where remove :: FilePath -> IO CommandResult
         remove filename = removeFile filename >> return (Right filename)
 
@@ -93,7 +94,7 @@ edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing t
 edit EditPlaylistOptions {..} = do
   pl <- readPlaylistByName epName
   case pl of
-    Nothing -> return $ Left "Couldn't read the playlist"
+    Nothing -> return $ Left $ PlaylistDoesNotExist epName
     (Just playlist) -> doWrite playlist >> return (Right $ "Updated " ++ epName)
   where doWrite p = writePlaylist $ p { plDescription = epDescription }
 
@@ -112,14 +113,17 @@ listPlaylists = userdir
             >>= mapM makeDescription . filterPlaylistFiles
             >>= \ds -> case partitionEithers ds of
                          ([], rs) -> return $ Right $ unlines rs
-                         (ls, _) -> return $ Left $ unlines ls
+                         (ls, _) -> return $ Left $ OtherError $ unlines $ map show ls
   where filterPlaylistFiles :: [FilePath] -> [FilePath]
         filterPlaylistFiles = filter ((== edaboExtension) . tailDef "" . takeExtension)
         makeDescription :: FilePath -> IO CommandResult
-        makeDescription filename =  readPlaylistByName filename
-                                    >>= \x -> case x  of
-                                                Nothing -> return $ Left $ filename ++ "can't be loaded"
-                                                Just pl -> return $ Right $ printableDescription pl
+        makeDescription filename = readPlaylistByName filename
+                                   >>= \x -> case x  of
+                                               Nothing -> return
+                                                          $ Left
+                                                          $ OtherError
+                                                          $ filename ++ "can't be loaded"
+                                               Just pl -> return $ Right $ printableDescription pl
         printableDescription :: Playlist -> String
         printableDescription pl = unwords [ plName pl
                                           , "-"
@@ -133,9 +137,9 @@ load :: LoadOptions -> IO CommandResult
 load LoadOptions {..} = do
    cleared <- if optClear then clearMPDPlaylist else return (return ())
    case cleared of
-     (Left l)-> return $ Left $ show l
+     (Left l)-> return $ Left $ OtherError $ show l
      Right _ -> readPlaylistByName optPlaylist >>= (\f -> case f of
-                    Nothing       -> return $ Left "Couldn't load it"
+                    Nothing       -> return $ Left $ PlaylistDoesNotExist optPlaylist
                     Just playlist -> do
                       let pltracks = plTracks playlist
                       void $ loadPlaylistIgnoringResults pltracks
@@ -156,7 +160,7 @@ load LoadOptions {..} = do
          reportNotFounds :: [Track] -> CommandResult
          reportNotFounds xs = case xs of
                                 [] -> Right "Loaded all tracks"
-                                (_:_) -> Left $ unlines (map show xs) ++ "were not found"
+                                (_:_) -> Left $ MissingTracks xs
 
 save :: SaveOptions -> IO CommandResult
 save SaveOptions {..} = do
@@ -167,13 +171,11 @@ save SaveOptions {..} = do
   if exists
      then if optOverWrite
              then writer
-             else return (Left $ unwords ["Not saving because the playlist"
-                                         , optPlaylistName
-                                         , "exists."])
+             else return (Left $ NotOverwritingPlaylist optPlaylistName)
      else writer
   where write :: UTCTime -> IO CommandResult
         write time = getTracksFromPlaylist
-                        >>= either (return . Left )
+                        >>= either (return . Left . OtherError)
                                    (\tracks -> writefile time tracks
                                             >> return (Right ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()

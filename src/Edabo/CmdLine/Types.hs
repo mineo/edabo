@@ -1,5 +1,7 @@
 module Edabo.CmdLine.Types where
 
+import           Edabo.Types (Track)
+
 data Options = Options
   { optVerbose :: Bool
   , optCommand :: Command }
@@ -38,4 +40,10 @@ data Command
   | AddToPlaylist AddToPlaylistOptions
   | EditPlaylist EditPlaylistOptions
 
-type CommandResult = Either String String
+data CommandError
+  = PlaylistDoesNotExist String
+  | MissingTracks [Track]
+  | NotOverwritingPlaylist String
+  | OtherError String
+    deriving (Show, Eq)
+type CommandResult = Either CommandError String
