@@ -97,13 +97,18 @@ subCommandParser :: Parser Command
 subCommandParser = subparser
            (command "listplaylist" (info (withHelper parseList)
                                     (progDesc "print the playlist, JSON-style"))
-           <> command "save" (info (withHelper parseSave) (progDesc "save the playlist"))
-           <> command "load" (info (withHelper parseLoad) (progDesc "load a playlist"))
+           <> command "save" (info (withHelper parseSave)
+                              (progDesc "save the playlist"))
+           <> command "load" (info (withHelper parseLoad)
+                              (progDesc "load a playlist"))
            <> command "list" (info (withHelper parseListPlaylists)
                               (progDesc "list all available playlists"))
-           <> command "delete" (info (withHelper parseDeletePlaylist) (progDesc "delete a playlist"))
-           <> command "add" (info (withHelper parseAddToPlaylist) (progDesc "add tracks to an existing playlist"))
-           <> command "edit" (info (withHelper parseEditPlaylist) (progDesc "edit some information about a playlist"))
+           <> command "delete" (info (withHelper parseDeletePlaylist)
+                                (progDesc "delete a playlist"))
+           <> command "add" (info (withHelper parseAddToPlaylist)
+                             (progDesc "add tracks to an existing playlist"))
+           <> command "edit" (info (withHelper parseEditPlaylist)
+                              (progDesc "edit some information about a playlist"))
            )
            where withHelper f = helper <*> f
 
