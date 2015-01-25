@@ -39,12 +39,12 @@ addToPlaylist AddToPlaylistOptions {..} = do
   currentplaylist <- if atpOptAll
                         then getTracksFromPlaylist
                         else currentTrackAsList
-  either (return . Left . OtherError) addTracks currentplaylist
+  either (return . Left) addTracks currentplaylist
   where addTracks :: [Track] -> IO CommandResult
         addTracks tracks = do
             pl <- loadPlaylist atpOptCreate atpOptPlaylistName
             either (return . Left . OtherError) (update tracks) pl
-        currentTrackAsList :: IO (Either String [Track])
+        currentTrackAsList :: IO (Either CommandError [Track])
         currentTrackAsList = do
           t <- getCurrentTrack
           either (return . Left) (\track -> return $ Right [track]) t
@@ -174,7 +174,7 @@ save SaveOptions {..} = do
      else writer
   where write :: UTCTime -> IO CommandResult
         write time = getTracksFromPlaylist
-                        >>= either (return . Left . OtherError)
+                        >>= either (return . Left)
                                    (\tracks -> writefile time tracks
                                             >> return (Right ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()

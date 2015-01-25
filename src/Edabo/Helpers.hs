@@ -1,6 +1,6 @@
 module Edabo.Helpers where
 
-import           Edabo.CmdLine.Types        (CommandError(..), CommandResult)
+import           Edabo.CmdLine.Types        (CommandError(..))
 import           Edabo.MPD                  (getTracksFromPlaylist)
 import           Edabo.Types                (Track (..))
 
@@ -14,5 +14,5 @@ checkPlaylistForCompletion current expected =
 -- | The 'playlistActor' function tries to get the tracklist and, in case that
 --   didn't work (a Left was returned), returns the Left or (in case a
 --   Right was returned) applys a function to it.
-playlistActor :: ([Track] -> CommandResult) -> IO CommandResult
-playlistActor f = getTracksFromPlaylist >>= either (return . Left . OtherError) (return . f)
+playlistActor :: ([Track] -> Either CommandError b) -> IO (Either CommandError b)
+playlistActor f = getTracksFromPlaylist >>= either (return . Left) (return . f)

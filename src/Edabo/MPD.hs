@@ -1,24 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Edabo.MPD where
 
-import           Data.Either                     (lefts, rights)
+import           Data.Either                     (partitionEithers)
 import           Data.Maybe                      (mapMaybe)
 import           Data.String                     (fromString)
 import           Data.UUID                       (UUID)
 import qualified Data.UUID                       (toString)
 import qualified Data.UUID                       as UUID
+import           Edabo.CmdLine.Types             (CommandError (..))
 import           Edabo.Types                     (Track (..), makeTrack)
-import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID,
-                                                            MUSICBRAINZ_TRACKID,
-                                                            MUSICBRAINZ_RELEASETRACKID,
-                                                            Title,
-                                                            Artist),
+import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID),
                                                   Response, Song (..), add,
-                                                  clear, find, sgGetTag,
-                                                  toString, withMPD, (=?),
-                                                  currentSong)
+                                                  clear, currentSong, find,
+                                                  sgGetTag, toString, withMPD,
+                                                  (=?))
 import           Network.MPD.Commands.Extensions (getPlaylist)
-import           Safe                            (headMay, headDef)
+import           Safe                            (headMay)
 
 clearMPDPlaylist :: IO (Response ())
 clearMPDPlaylist = withMPD clear
@@ -27,8 +24,8 @@ getMPDPlaylist :: IO (Response [Song])
 getMPDPlaylist = withMPD getPlaylist
 
 getTrackFromSong :: Song
-                 -> Either String Track
-getTrackFromSong song@(Song {sgIndex = Just pos}) =
+                 -> Either CommandError Track
+getTrackFromSong song@(Song {sgIndex = Just _}) =
                       let recordingid    = sgGetTag MUSICBRAINZ_TRACKID song
                           releaseid      = sgGetTag MUSICBRAINZ_ALBUMID song
                           releasetrackid = sgGetTag MUSICBRAINZ_RELEASETRACKID song
@@ -42,49 +39,36 @@ getTrackFromSong song@(Song {sgIndex = Just pos}) =
                                                                  Nothing -> Nothing
                                                                  Just [] -> Nothing
                                                                  Just v -> Just $ toString $ head v
-                             Nothing       -> Left  $ unwords ["Song"
-                                                              , show pos
-                                                              , "("
-                                                              , show title
-                                                              , "by"
-                                                              , show artist
-                                                              , ")"
-                                                              , "has no recording id"
-                                                              ]
-                                              where title = metahelper "unknown title" Title
-                                                    artist = metahelper "unknown artist" Artist
-                                                    metahelper defaultvalue meta = maybe defaultvalue
-                                                                                         (headDef defaultvalue . map toString)
-                                                                                         (sgGetTag meta song)
-getTrackFromSong Song {sgFilePath = path, sgIndex = Nothing} =
-                 Left $ unwords [toString path
-                                , "has no position in the playlist - weird!"]
+                             Nothing       -> Left  $ MissingMetadata [MUSICBRAINZ_TRACKID] song
 
-getCurrentTrack :: IO (Either String Track)
+getTrackFromSong song@Song {sgIndex = Nothing} =
+                 Left $ InvalidInfo "The song has no position in the playlist" song
+getCurrentTrack :: IO (Either CommandError Track)
 getCurrentTrack = do
   response <- withMPD currentSong
   case response of
-    (Left e) -> return $ Left $ show e
+    (Left e) -> return $ Left $ MPDFailure e
     (Right maybeSong) -> case maybeSong of
-                           Nothing -> return $ Left "Couldn't get the current song"
+                           Nothing -> return $ Left NoCurrentSong
                            (Just song) -> return $ getTrackFromSong song
 
 getTracksFromSongs :: [Song]
-                   -> [Either String Track]
+                   -> [Either CommandError Track]
 getTracksFromSongs = map getTrackFromSong
 
 
-getTracksFromPlaylist :: IO (Either String [Track])
+getTracksFromPlaylist :: IO (Either CommandError [Track])
 getTracksFromPlaylist = do
   playlist <- getMPDPlaylist
   let res = case playlist of
-              Left e -> Left $ show e
+              Left e -> Left $ MPDFailure e
               Right songs -> trackListOrError $ getTracksFromSongs songs
   return res
-  where trackListOrError tl = case length tllefts of
-                                0 -> Right $ rights tl
-                                _ -> Left  $ unlines tllefts
-                              where tllefts = lefts tl
+  where trackListOrError :: [Either CommandError Track]
+                         -> Either CommandError [Track]
+        trackListOrError tl = case partitionEithers tl of
+                                (lefts@(_:_), _) -> Left $ MultipleErrors lefts
+                                (_, rights) -> Right rights
 
 loadMPDPlaylist :: [Track] -> Metadata -> (Track -> Maybe UUID.UUID) -> [IO (Response ())]
 loadMPDPlaylist pltracks meta uuidgetter = map loadsong $ mapMaybe uuidgetter pltracks

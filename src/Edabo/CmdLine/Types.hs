@@ -1,6 +1,8 @@
 module Edabo.CmdLine.Types where
 
 import           Edabo.Types (Track)
+import           Network.MPD (Metadata, Song)
+import           Network.MPD (MPDError)
 
 data Options = Options
   { optVerbose :: Bool
@@ -42,8 +44,13 @@ data Command
 
 data CommandError
   = PlaylistDoesNotExist String
+  | InvalidInfo String Song
+  | MissingMetadata [Metadata] Song
   | MissingTracks [Track]
+  | MPDFailure MPDError
+  | NoCurrentSong
   | NotOverwritingPlaylist String
   | OtherError String
+  | MultipleErrors [CommandError]
     deriving (Show, Eq)
 type CommandResult = Either CommandError String
