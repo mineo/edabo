@@ -32,6 +32,7 @@ import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
 import           System.FilePath            (takeExtension)
+import Control.Monad.Extra (ifM)
 
 addToPlaylist :: AddToPlaylistOptions -> IO CommandResult
 addToPlaylist AddToPlaylistOptions {..} = do
@@ -53,10 +54,9 @@ addToPlaylist AddToPlaylistOptions {..} = do
                      -> IO (Either String Playlist)
         loadPlaylist create name = do
           filename <- makePlaylistFileName name
-          exists <- doesFileExist filename
-          if exists
-            then liftM readPlaylistCase (readPlaylistByName name)
-            else createOrMsg name create
+          ifM (doesFileExist filename)
+              (liftM readPlaylistCase (readPlaylistByName name))
+              (createOrMsg name create)
         -- | Convert from 'Maybe Playlist' to 'Either String Playlist'
         readPlaylistCase :: Maybe Playlist -> Either String Playlist
         readPlaylistCase Nothing = Left "Could not read the playlist"
@@ -80,12 +80,11 @@ addToPlaylist AddToPlaylistOptions {..} = do
           return $ Right ("Updated " ++ atpOptPlaylistName)
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
-deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} =
-  makePlaylistFileName plname
-  >>= \plfilename -> doesFileExist plfilename
-  >>= \doesit -> if doesit
-                 then remove plfilename
-                 else return $ Left $ PlaylistDoesNotExist plname
+deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} = do
+  plfilename <- makePlaylistFileName plname
+  ifM (doesFileExist plfilename)
+      (remove plfilename)
+      (return $ Left $ PlaylistDoesNotExist plname)
   where remove :: FilePath -> IO CommandResult
         remove filename = removeFile filename >> return (Right filename)
 
