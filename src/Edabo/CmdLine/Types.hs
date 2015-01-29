@@ -1,8 +1,7 @@
 module Edabo.CmdLine.Types where
 
 import           Edabo.Types (Track)
-import           Network.MPD (Metadata, Song)
-import           Network.MPD (MPDError)
+import           Network.MPD (Metadata, MPDError, Song)
 
 data Options = Options
   { optVerbose :: Bool
