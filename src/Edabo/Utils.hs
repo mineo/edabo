@@ -37,9 +37,10 @@ interactWithPlaylist name create f message = do
               (return $ Left $ PlaylistDoesNotExist name)
   case playlist of
    (Right pl) -> modifyPlaylist pl
-   (Left e) -> if not create
-                          then return $ Left e
-                          else createNewPlaylist >>= modifyPlaylist
+   (Left e@(PlaylistDoesNotExist _)) -> if not create
+                                      then return $ Left e
+                                      else createNewPlaylist >>= modifyPlaylist
+   (Left e@_) -> return (Left e)
   where modifyPlaylist :: Playlist -> IO CommandResult
         modifyPlaylist pl = case f pl of
           (Left e) -> return (Left e)
