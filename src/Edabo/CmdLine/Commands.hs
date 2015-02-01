@@ -23,6 +23,7 @@ import           Edabo.Types                (Playlist (Playlist), Track,
                                              plDescription, plName, plTracks,
                                              recordingID, releaseTrackID)
 import           Edabo.Utils                (edaboExtension,
+                                             interactWithPlaylist,
                                              makePlaylistFileName,
                                              readPlaylistByName, userdir,
                                              writePlaylist)
@@ -90,12 +91,11 @@ deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} = do
 
 edit :: EditPlaylistOptions -> IO CommandResult
 edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing to update"
-edit EditPlaylistOptions {..} = do
-  pl <- readPlaylistByName epName
-  case pl of
-    Nothing -> return $ Left $ PlaylistDoesNotExist epName
-    (Just playlist) -> doWrite playlist >> return (Right $ "Updated " ++ epName)
-  where doWrite p = writePlaylist $ p { plDescription = epDescription }
+edit EditPlaylistOptions {..} = interactWithPlaylist
+                                epName
+                                False
+                                (\p -> Right p {plDescription = epDescription})
+                                ("Updated " ++ epName)
 
 list :: IO CommandResult
 list = do
