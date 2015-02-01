@@ -1,7 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
-import           Control.Monad              (void, liftM)
+import           Control.Monad              (liftM, void)
+import           Control.Monad.Extra        (ifM)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Either                (partitionEithers)
@@ -9,11 +10,10 @@ import           Data.Maybe                 (fromMaybe)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
-                                             CommandResult,
+                                             CommandError (..), CommandResult,
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
-                                             LoadOptions (..), SaveOptions (..),
-                                             CommandError (..))
+                                             LoadOptions (..), SaveOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
@@ -33,52 +33,28 @@ import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
 import           System.FilePath            (takeExtension)
-import Control.Monad.Extra (ifM)
 
 addToPlaylist :: AddToPlaylistOptions -> IO CommandResult
 addToPlaylist AddToPlaylistOptions {..} = do
   currentplaylist <- if atpOptAll
                         then getTracksFromPlaylist
                         else currentTrackAsList
-  either (return . Left) addTracks currentplaylist
-  where addTracks :: [Track] -> IO CommandResult
-        addTracks tracks = do
-            pl <- loadPlaylist atpOptCreate atpOptPlaylistName
-            either (return . Left . OtherError) (update tracks) pl
-        currentTrackAsList :: IO (Either CommandError [Track])
+  case currentplaylist of
+   (Left e) -> return $ Left e
+   (Right currenttracks) -> interactWithPlaylist
+                            atpOptPlaylistName
+                            atpOptCreate
+                            (update currenttracks)
+                            ("Updated " ++ atpOptPlaylistName)
+  where currentTrackAsList :: IO (Either CommandError [Track])
         currentTrackAsList = do
           t <- getCurrentTrack
           either (return . Left) (\track -> return $ Right [track]) t
-        -- | Load the playlist we want to manipulate from a local file
-        loadPlaylist :: Bool -- ^ Whether the file should be created if necessary
-                     -> FilePath -- ^ The name of the playlist
-                     -> IO (Either String Playlist)
-        loadPlaylist create name = do
-          filename <- makePlaylistFileName name
-          ifM (doesFileExist filename)
-              (liftM readPlaylistCase (readPlaylistByName name))
-              (createOrMsg name create)
-        -- | Convert from 'Maybe Playlist' to 'Either String Playlist'
-        readPlaylistCase :: Maybe Playlist -> Either String Playlist
-        readPlaylistCase Nothing = Left "Could not read the playlist"
-        readPlaylistCase (Just pl) = Right pl
-        -- | Either create a new playlist file or return a message stating that
-        --   the playlist doesn't exist.
-        createOrMsg :: FilePath -- ^ The playlists name
-                    -> Bool -- ^ Whether to create it
-                    -> IO (Either String Playlist)
-        createOrMsg name False = return $ Left $ name ++ " does not exist"
-        createOrMsg name True  = do
-          time <- getCurrentTime
-          return $ Right $ Playlist name Nothing  time []
-        -- | Update the tracklist and save it
         update :: [Track] -- ^ The new tracks
                -> Playlist -- ^ The playlist that's about to be updated
-               -> IO CommandResult
-        update newtracks playlist@Playlist{plTracks = currentTracks} = do
-          let newpl = playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
-          void $ writePlaylist newpl
-          return $ Right ("Updated " ++ atpOptPlaylistName)
+               -> Either CommandError Playlist
+        update newtracks playlist@Playlist{plTracks = currentTracks} =
+          Right $ playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
 deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} = do
