@@ -52,7 +52,7 @@ interactWithPlaylist name create f message = do
           return $ Playlist name Nothing time []
         readExistingPlaylist :: IO (Either CommandError Playlist)
         readExistingPlaylist = liftM (maybe
-                                      (Left (OtherError ("Couldn't read " ++ name)))
+                                      (Left (DecodingFailed name))
                                       Right)
                                (readPlaylistByName name)
 
@@ -82,6 +82,9 @@ printError NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
 printError (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
 printError (OtherError e) = putStrLn e
 printError (MultipleErrors errors) = mapM_ printError errors
+printError (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
+                                            ++ name
+                                            ++ " failed")
 printError e = print e
 
 readPlaylist :: FilePath -> IO (Maybe Playlist)

@@ -51,5 +51,6 @@ data CommandError
   | NotOverwritingPlaylist String
   | OtherError String
   | MultipleErrors [CommandError]
+  | DecodingFailed String
     deriving (Show, Eq)
 type CommandResult = Either CommandError String

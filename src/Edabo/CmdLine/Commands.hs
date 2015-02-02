@@ -96,8 +96,7 @@ listPlaylists = userdir
                                    >>= \x -> case x  of
                                                Nothing -> return
                                                           $ Left
-                                                          $ OtherError
-                                                          $ filename ++ "can't be loaded"
+                                                          $ DecodingFailed filename
                                                Just pl -> return $ Right $ printableDescription pl
         printableDescription :: Playlist -> String
         printableDescription pl = unwords [ plName pl
@@ -114,7 +113,7 @@ load LoadOptions {..} = do
    case cleared of
      (Left l)-> return $ Left $ OtherError $ show l
      Right _ -> readPlaylistByName optPlaylist >>= (\f -> case f of
-                    Nothing       -> return $ Left $ PlaylistDoesNotExist optPlaylist
+                    Nothing       -> return $ Left $ DecodingFailed optPlaylist
                     Just playlist -> do
                       let pltracks = plTracks playlist
                       void $ loadPlaylistIgnoringResults pltracks
