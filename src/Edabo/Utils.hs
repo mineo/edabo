@@ -7,6 +7,7 @@ import           Control.Monad.Extra            (ifM)
 import           Data.Aeson                     (decode)
 import           Data.Aeson.Encode              (encode)
 import qualified Data.ByteString.Lazy           as B
+import           Data.List                      (intercalate)
 import           Data.Time                      (getCurrentTime)
 import           Edabo.CmdLine.Types            (CommandError (..),
                                                  CommandResult)
@@ -59,6 +60,29 @@ makePlaylistFileName :: FilePath -> IO FilePath
 makePlaylistFileName plname = let filename = if hasExtension plname then plname
                                              else plname <.> edaboExtension
                               in flip combine filename <$> userdir
+
+-- | Print CommandErrors in a human readable format.
+printError :: CommandError -> IO ()
+printError (PlaylistDoesNotExist name) = putStrLn ("The playlist "
+                                                ++ name
+                                                ++ " does not exist")
+printError (MissingMetadata metas song) = putStrLn ("The song "
+                                                ++ show song
+                                                ++ " is missing the following metadata"
+                                                ++ intercalate ", " (map show metas)
+                                                )
+printError (MissingTracks tracks) = putStrLn ("The following tracks are missing :"
+                                          ++ unlines (map
+                                                      show
+                                                      tracks))
+printError (MPDFailure e) = putStrLn ("The following error occured while\
+                                   \communicating with MPD: "
+                                    ++ show e)
+printError NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
+printError (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
+printError (OtherError e) = putStrLn e
+printError (MultipleErrors errors) = mapM_ printError errors
+printError e = print e
 
 readPlaylist :: FilePath -> IO (Maybe Playlist)
 readPlaylist filename = liftM decode (B.readFile filename)

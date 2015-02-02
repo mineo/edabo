@@ -2,14 +2,15 @@ module Edabo.CmdLine where
 
 import           Control.Applicative    ((<$>), (<*>))
 import           Data.Monoid            ((<>))
-import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, list,
-                                         listPlaylists, load, save, edit)
+import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, edit,
+                                         list, listPlaylists, load, save)
 import           Edabo.CmdLine.Types    (AddToPlaylistOptions (..),
                                          Command (..),
                                          DeletePlaylistOptions (..),
                                          EditPlaylistOptions (..),
                                          LoadOptions (..), Options (..),
                                          SaveOptions (..))
+import           Edabo.Utils            (printError)
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
                                          long, metavar, optional, progDesc,
@@ -127,7 +128,7 @@ handleArgs = execParser opts >>= run
           )
 
 run :: Options -> IO ()
-run Options {optCommand = cmd} = runCmd >>= either print putStrLn
+run Options {optCommand = cmd} = runCmd >>= either printError putStrLn
   where runCmd = case cmd of
                    List -> list
                    ListPlaylists -> listPlaylists
