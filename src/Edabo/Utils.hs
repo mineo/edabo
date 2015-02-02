@@ -76,7 +76,7 @@ printError (MissingTracks tracks) = putStrLn ("The following tracks are missing 
                                                       show
                                                       tracks))
 printError (MPDFailure e) = putStrLn ("The following error occured while\
-                                   \communicating with MPD: "
+                                   \ communicating with MPD: "
                                     ++ show e)
 printError NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
 printError (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
