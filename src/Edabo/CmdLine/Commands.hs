@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
-import           Control.Monad              (liftM, void)
+import           Control.Monad              (void)
 import           Control.Monad.Extra        (ifM)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
