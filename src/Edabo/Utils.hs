@@ -11,7 +11,7 @@ import           Data.List                      (intercalate)
 import           Data.Time                      (getCurrentTime)
 import           Edabo.CmdLine.Types            (CommandError (..),
                                                  CommandResult)
-import           Edabo.Types                    (Playlist (..))
+import           Edabo.Types                    (Playlist (..), Track (..))
 import           System.Directory               (createDirectoryIfMissing,
                                                  doesFileExist)
 import           System.Environment.XDG.BaseDir (getUserDataFile)
@@ -71,10 +71,20 @@ printError (MissingMetadata metas song) = putStrLn ("The song "
                                                 ++ " is missing the following metadata"
                                                 ++ intercalate ", " (map show metas)
                                                 )
-printError (MissingTracks tracks) = putStrLn ("The following tracks are missing :"
+printError (MissingTracks tracks) = putStrLn ("The following tracks are missing:"
+                                          ++ "\n"
                                           ++ unlines (map
-                                                      show
+                                                      trackLinks
                                                       tracks))
+  where trackLinks :: Track -> String
+        trackLinks Track{..} = unlines ["https://musicbrainz.org/recording/"
+                                        ++ show recordingID
+                                       , case releaseTrackID of
+                                       (Just rtid)->
+                                         "https://musicbrainz.org/track/"
+                                         ++ show rtid
+                                       Nothing -> ""
+                                       ]
 printError (MPDFailure e) = putStrLn ("The following error occured while\
                                    \ communicating with MPD: "
                                     ++ show e)
