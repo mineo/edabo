@@ -17,12 +17,15 @@ import           System.Directory               (createDirectoryIfMissing,
 import           System.Environment.XDG.BaseDir (getUserDataFile)
 import           System.FilePath                (combine, hasExtension, (<.>))
 
+-- | The file extension of playlists files.
 edaboExtension :: String
 edaboExtension = "edabo"
 
+-- | The directory in which playlists will be saved.
 userdir :: IO FilePath
 userdir  = getUserDataFile "edabo" "playlists"
 
+-- | Make sure the 'userdir' exists.
 ensureUserDir :: IO ()
 ensureUserDir = userdir >>= createDirectoryIfMissing True
 
@@ -56,7 +59,9 @@ interactWithPlaylist name create f message = do
                                       Right)
                                (readPlaylistByName name)
 
-makePlaylistFileName :: FilePath -> IO FilePath
+-- | Builds the absolute filename of a playlist from its name.
+makePlaylistFileName :: FilePath -- ^ The playlists name
+                     -> IO FilePath -- ^ The absolute path.
 makePlaylistFileName plname = let filename = if hasExtension plname then plname
                                              else plname <.> edaboExtension
                               in flip combine filename <$> userdir
@@ -97,13 +102,18 @@ printError (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
                                             ++ " failed")
 printError e = print e
 
+-- | Open a playlists by its absolute path and try to decode it into a
+-- 'Playlist' object
 readPlaylist :: FilePath -> IO (Maybe Playlist)
 readPlaylist filename = liftM decode (B.readFile filename)
 
-readPlaylistByName :: FilePath -> IO (Maybe Playlist)
+-- | Like 'readPlaylist', only that the the playlist is opened by only its name,
+-- not absolute path
+readPlaylistByName :: FilePath -- ^ The playlists name
+                   -> IO (Maybe Playlist)
 readPlaylistByName name = makePlaylistFileName name >>= readPlaylist
 
--- | Write a playlist to a file. The filename will be deduced from the playlists
+-- | Write a 'Playlist' to a file. The filename will be deduced from the playlists
 --   name
 writePlaylist :: Playlist -> IO ()
 writePlaylist pl@Playlist{..} = do

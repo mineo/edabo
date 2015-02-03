@@ -6,7 +6,9 @@ import           Edabo.Types                (Track (..))
 
 -- | Returns a list of 'Track's recordings that are in 'expected' but not in
 -- 'current'
-checkPlaylistForCompletion :: [Track] -> [Track] -> [Track]
+checkPlaylistForCompletion :: [Track] -- ^ The current tracks
+                           -> [Track] -- ^ The expected tracks
+                           -> [Track] -- ^ expected - current
 checkPlaylistForCompletion current expected =
    let got_ids = map recordingID current
    in filter (\track -> recordingID track `notElem` got_ids) expected

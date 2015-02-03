@@ -17,12 +17,15 @@ import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID,
 import           Network.MPD.Commands.Extensions (getPlaylist)
 import           Safe                            (headMay)
 
+-- | Clears the current playlist.
 clearMPDPlaylist :: IO (Response ())
 clearMPDPlaylist = withMPD clear
 
+-- | Returns a list of songs in the current playlist.
 getMPDPlaylist :: IO (Response [Song])
 getMPDPlaylist = withMPD getPlaylist
 
+-- | Tries to convert from 'Song' to 'Track'.
 getTrackFromSong :: Song
                  -> Either CommandError Track
 getTrackFromSong song@(Song {sgIndex = Just _}) =
@@ -43,6 +46,8 @@ getTrackFromSong song@(Song {sgIndex = Just _}) =
 
 getTrackFromSong song@Song {sgIndex = Nothing} =
                  Left $ InvalidInfo "The song has no position in the playlist" song
+
+-- | Gets the current 'Song', converted to a 'Track'.
 getCurrentTrack :: IO (Either CommandError Track)
 getCurrentTrack = do
   response <- withMPD currentSong
@@ -52,11 +57,13 @@ getCurrentTrack = do
                            Nothing -> return $ Left NoCurrentSong
                            (Just song) -> return $ getTrackFromSong song
 
+-- | Tries to convert multiple 'Song's to 'Track's.
 getTracksFromSongs :: [Song]
                    -> [Either CommandError Track]
 getTracksFromSongs = map getTrackFromSong
 
 
+-- | Gets the 'Tracks' that are currently in the playlist.
 getTracksFromPlaylist :: IO (Either CommandError [Track])
 getTracksFromPlaylist = do
   playlist <- getMPDPlaylist
@@ -70,7 +77,14 @@ getTracksFromPlaylist = do
                                 (lefts@(_:_), _) -> Left $ MultipleErrors lefts
                                 (_, rights) -> Right rights
 
-loadMPDPlaylist :: [Track] -> Metadata -> (Track -> Maybe UUID.UUID) -> [IO (Response ())]
+-- | Loads a list of 'Track's into the current playlist.
+loadMPDPlaylist :: [Track] -- ^ The list of tracks
+                -> Metadata -- ^ The 'Metadata' used to look up each track in
+                   -- MPDs database
+                -> (Track -> Maybe UUID.UUID) -- ^ The function used to get a
+                                              -- 'UUID.UUID' value corresponding
+                                              -- to 'Metadata'
+                -> [IO (Response ())]
 loadMPDPlaylist pltracks meta uuidgetter = map loadsong $ mapMaybe uuidgetter pltracks
   where loadsong :: UUID -> IO (Response ())
         loadsong uuid = do
