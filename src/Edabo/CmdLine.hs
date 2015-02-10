@@ -3,12 +3,13 @@ module Edabo.CmdLine where
 import           Control.Applicative    ((<$>), (<*>))
 import           Data.Monoid            ((<>))
 import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, edit,
-                                         list, listPlaylists, load, save)
+                                         list, listPlaylists, load, path, save)
 import           Edabo.CmdLine.Types    (AddToPlaylistOptions (..),
                                          Command (..),
                                          DeletePlaylistOptions (..),
                                          EditPlaylistOptions (..),
                                          LoadOptions (..), Options (..),
+                                         PathOptions (..),
                                          SaveOptions (..))
 import           Edabo.Utils            (printError)
 import           Options.Applicative    (Parser, argument, command, execParser,
@@ -62,6 +63,14 @@ parseLoad = Load
                 )
             )
 
+parsePath :: Parser Command
+parsePath = PlaylistPath
+            <$> (PathOptions
+                 <$> argument str
+                 ( metavar "NAME"
+                 <> help "the playlists name")
+                )
+
 parseSave :: Parser Command
 parseSave = Save
             <$> (SaveOptions
@@ -111,6 +120,8 @@ subCommandParser = subparser
                              (progDesc "add tracks to an existing playlist"))
            <> command "edit" (info (withHelper parseEditPlaylist)
                               (progDesc "edit some information about a playlist"))
+           <> command "path" (info (withHelper parsePath)
+                               (progDesc "show the full path to a playlist file"))
            )
            where withHelper f = helper <*> f
 
@@ -138,6 +149,7 @@ run Options {optCommand = cmd} = runCmd >>= either exitWithError putStrLn
                    DeletePlaylist options -> deletePlaylist options
                    AddToPlaylist options -> addToPlaylist options
                    EditPlaylist options -> edit options
+                   PlaylistPath options -> path options
         exitWithError e = do
           printError e
           exitFailure

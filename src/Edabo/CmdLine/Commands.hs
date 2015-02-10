@@ -13,7 +13,8 @@ import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              CommandError (..), CommandResult,
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
-                                             LoadOptions (..), SaveOptions (..))
+                                             LoadOptions (..), SaveOptions (..),
+                                             PathOptions(..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
@@ -135,6 +136,14 @@ load LoadOptions {..} = do
          reportNotFounds xs = case xs of
                                 [] -> Right "Loaded all tracks"
                                 (_:_) -> Left $ MissingTracks xs
+
+path :: PathOptions -> IO CommandResult
+path PathOptions {..} = do
+  plpath <- makePlaylistFileName pName
+  exists <- doesFileExist plpath
+  return (if exists
+             then Right plpath
+             else Left (PlaylistDoesNotExist pName))
 
 save :: SaveOptions -> IO CommandResult
 save SaveOptions {..} = do

@@ -1,14 +1,14 @@
 module Edabo.CmdLine.Types where
 
 import           Edabo.Types (Track)
-import           Network.MPD (Metadata, MPDError, Song)
+import           Network.MPD (MPDError, Metadata, Song)
 
 data Options = Options
   { optVerbose :: Bool
   , optCommand :: Command }
 
 data SaveOptions = SaveOptions
-  {  optOverWrite   :: Bool
+  { optOverWrite    :: Bool
   , optDescription  :: Maybe String
   , optPlaylistName :: String}
 
@@ -30,7 +30,11 @@ data AddToPlaylistOptions = AddToPlaylistOptions
 data EditPlaylistOptions = EditPlaylistOptions
   { epName        :: String
   , epDescription :: Maybe String
- }
+  }
+
+data PathOptions = PathOptions
+  { pName :: String
+  }
 
 data Command
   = List
@@ -40,6 +44,7 @@ data Command
   | DeletePlaylist DeletePlaylistOptions
   | AddToPlaylist AddToPlaylistOptions
   | EditPlaylist EditPlaylistOptions
+  | PlaylistPath PathOptions
 
 data CommandError
   = PlaylistDoesNotExist String
