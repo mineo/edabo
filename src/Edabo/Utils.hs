@@ -117,5 +117,6 @@ readPlaylistByName name = makePlaylistFileName name >>= readPlaylist
 --   name
 writePlaylist :: Playlist -> IO ()
 writePlaylist pl@Playlist{..} = do
+  now <- getCurrentTime
   plpath <- makePlaylistFileName plName
-  B.writeFile plpath $ encode pl
+  B.writeFile plpath $ encode pl {plTimestamp = now}
