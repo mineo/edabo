@@ -65,8 +65,8 @@ type CommandResult = Either CommandError String
 
 instance Monoid CommandResult where
   mempty = Right ""
-  mappend (Right "") r@(Right _) = r
-  mappend r@(Right _) (Right "") = r
+  mappend (Right "") other = other
+  mappend other (Right "") = other
   mappend (Right s1) (Right s2) = Right (s1 ++ "\n" ++ s2)
   mappend (Right s) (Left e) = Left (MultipleErrors [OtherError s, e])
   mappend (Left e) (Right s) = Left (MultipleErrors [e, OtherError s])
