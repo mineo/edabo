@@ -2,19 +2,21 @@
 module Edabo.CmdLine.Commands where
 
 import           Control.Monad              (void)
+import           Control.Monad              (liftM)
 import           Control.Monad.Extra        (ifM)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Either                (partitionEithers)
 import           Data.Maybe                 (fromMaybe)
+import           Data.Monoid                (mconcat)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              CommandError (..), CommandResult,
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
-                                             LoadOptions (..), SaveOptions (..),
-                                             PathOptions(..))
+                                             LoadOptions (..), PathOptions (..),
+                                             SaveOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
@@ -42,20 +44,23 @@ addToPlaylist AddToPlaylistOptions {..} = do
                         else currentTrackAsList
   case currentplaylist of
    (Left e) -> return $ Left e
-   (Right currenttracks) -> interactWithPlaylist
-                            atpOptPlaylistName
-                            atpOptCreate
-                            (update currenttracks)
-                            ("Updated " ++ atpOptPlaylistName)
-  where currentTrackAsList :: IO (Either CommandError [Track])
-        currentTrackAsList = do
-          t <- getCurrentTrack
-          either (return . Left) (\track -> return $ Right [track]) t
-        update :: [Track] -- ^ The new tracks
-               -> Playlist -- ^ The playlist that's about to be updated
-               -> Either CommandError Playlist
-        update newtracks playlist@Playlist{plTracks = currentTracks} =
-          Right $ playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
+   (Right currenttracks) -> liftM
+                            mconcat
+                            (mapM (\name -> add name currenttracks)
+                             atpOptPlaylistNames)
+  where
+    add :: String -> [Track] -> IO CommandResult
+    add name tracks = interactWithPlaylist name atpOptCreate (update tracks)
+                      ("Updated " ++ name)
+    currentTrackAsList :: IO (Either CommandError [Track])
+    currentTrackAsList = do
+      t <- getCurrentTrack
+      either (return . Left) (\track -> return $ Right [track]) t
+    update :: [Track] -- ^ The new tracks
+           -> Playlist -- ^ The playlist that's about to be updated
+           -> Either CommandError Playlist
+    update newtracks playlist@Playlist{plTracks = currentTracks} =
+      Right $ playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
 
 deletePlaylist :: DeletePlaylistOptions -> IO CommandResult
 deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} = do

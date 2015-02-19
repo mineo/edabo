@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module Edabo.CmdLine.Types where
 
+import           Data.Monoid (Monoid (..))
 import           Edabo.Types (Track)
 import           Network.MPD (MPDError, Metadata, Song)
 
@@ -22,9 +25,9 @@ data DeletePlaylistOptions = DeletePlaylistOptions
   }
 
 data AddToPlaylistOptions = AddToPlaylistOptions
-  { atpOptPlaylistName :: String
-  , atpOptAll          :: Bool
-  , atpOptCreate       :: Bool
+  { atpOptPlaylistNames :: [String]
+  , atpOptAll           :: Bool
+  , atpOptCreate        :: Bool
   }
 
 data EditPlaylistOptions = EditPlaylistOptions
@@ -59,3 +62,18 @@ data CommandError
   | DecodingFailed String
     deriving (Show, Eq)
 type CommandResult = Either CommandError String
+
+instance Monoid CommandResult where
+  mempty = Right ""
+  mappend (Right "") r@(Right _) = r
+  mappend r@(Right _) (Right "") = r
+  mappend (Right s1) (Right s2) = Right (s1 ++ "\n" ++ s2)
+  mappend (Right s) (Left e) = Left (MultipleErrors [OtherError s, e])
+  mappend (Left e) (Right s) = Left (MultipleErrors [e, OtherError s])
+  mappend (Left (MultipleErrors es1)) (Left (MultipleErrors es2)) =
+    Left (MultipleErrors (es1 ++ es2))
+  mappend (Left (MultipleErrors es1)) (Left e) =
+    Left (MultipleErrors (es1 ++ [e]))
+  mappend (Left e) (Left (MultipleErrors es1)) =
+    Left (MultipleErrors (es1 ++ [e]))
+  mappend (Left e1) (Left e2) = Left (MultipleErrors [e1, e2])

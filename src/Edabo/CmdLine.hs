@@ -1,6 +1,7 @@
 module Edabo.CmdLine where
 
 import           Control.Applicative    ((<$>), (<*>))
+import           Control.Applicative    (many)
 import           Data.Monoid            ((<>))
 import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, edit,
                                          list, listPlaylists, load, path, save)
@@ -9,8 +10,7 @@ import           Edabo.CmdLine.Types    (AddToPlaylistOptions (..),
                                          DeletePlaylistOptions (..),
                                          EditPlaylistOptions (..),
                                          LoadOptions (..), Options (..),
-                                         PathOptions (..),
-                                         SaveOptions (..))
+                                         PathOptions (..), SaveOptions (..))
 import           Edabo.Utils            (printError)
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
@@ -22,10 +22,11 @@ import           System.Exit            (exitFailure)
 parseAddToPlaylist :: Parser Command
 parseAddToPlaylist = AddToPlaylist
                      <$> (AddToPlaylistOptions
-                         <$> argument str
-                         (metavar "NAME"
-                         <> help "the name of the playlist to add songs to"
-                         )
+                         <$> many (argument str
+                                   (metavar "NAME"
+                                    <> help "the name of the playlist to add songs to"
+                                   )
+                                  )
                          <*> switch
                           ( long "all"
                           <> short 'a'
