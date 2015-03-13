@@ -116,7 +116,7 @@ printResult (MultipleResults errors) = mapM_ printResult errors
 printResult (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
                                             ++ name
                                             ++ " failed")
-printResult e = print e
+printResult (Success msg)= putStrLn msg
 
 -- | Open a playlists by its absolute path and try to decode it into a
 -- 'Playlist' object
