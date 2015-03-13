@@ -2,9 +2,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Edabo.CmdLine.Types where
 
-import           Data.Monoid (Monoid (..))
 import           Edabo.Types (Track)
 import           Network.MPD (MPDError, Metadata, Song)
+import Data.Monoid (Monoid (..))
 
 data Options = Options
   { optVerbose :: Bool
@@ -49,7 +49,7 @@ data Command
   | EditPlaylist EditPlaylistOptions
   | PlaylistPath PathOptions
 
-data CommandError
+data CommandResult
   = PlaylistDoesNotExist String
   | InvalidInfo String Song
   | MissingMetadata [Metadata] Song
@@ -58,22 +58,14 @@ data CommandError
   | NoCurrentSong
   | NotOverwritingPlaylist String
   | OtherError String
-  | MultipleErrors [CommandError]
+  | MultipleResults [CommandResult]
   | DecodingFailed String
+  | Success String
     deriving (Show, Eq)
-type CommandResult = Either CommandError String
 
 instance Monoid CommandResult where
-  mempty = Right ""
-  mappend (Right "") other = other
-  mappend other (Right "") = other
-  mappend (Right s1) (Right s2) = Right (s1 ++ "\n" ++ s2)
-  mappend (Right s) (Left e) = Left (MultipleErrors [OtherError s, e])
-  mappend (Left e) (Right s) = Left (MultipleErrors [e, OtherError s])
-  mappend (Left (MultipleErrors es1)) (Left (MultipleErrors es2)) =
-    Left (MultipleErrors (es1 ++ es2))
-  mappend (Left (MultipleErrors es1)) (Left e) =
-    Left (MultipleErrors (es1 ++ [e]))
-  mappend (Left e) (Left (MultipleErrors es1)) =
-    Left (MultipleErrors (es1 ++ [e]))
-  mappend (Left e1) (Left e2) = Left (MultipleErrors [e1, e2])
+  mempty = Success ""
+  mappend (MultipleResults a) (MultipleResults b) = MultipleResults (a ++ b)
+  mappend (MultipleResults a) b = MultipleResults (a ++ [b])
+  mappend a (MultipleResults b) = MultipleResults (a : b)
+  mappend a b = MultipleResults [a, b]

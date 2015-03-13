@@ -9,12 +9,12 @@ import           Data.Aeson.Encode              (encode)
 import qualified Data.ByteString.Lazy           as B
 import           Data.List                      (intercalate)
 import           Data.Time                      (getCurrentTime)
-import           Edabo.CmdLine.Types            (CommandError (..),
-                                                 CommandResult)
+import           Edabo.CmdLine.Types            (CommandResult (..))
 import           Edabo.Types                    (Playlist (..), Track (..))
 import           System.Directory               (createDirectoryIfMissing,
                                                  doesFileExist)
 import           System.Environment.XDG.BaseDir (getUserDataFile)
+import           System.Exit                    (exitFailure, exitSuccess)
 import           System.FilePath                (combine, hasExtension, (<.>))
 
 -- | The file extension of playlists files.
@@ -29,9 +29,25 @@ userdir  = getUserDataFile "edabo" "playlists"
 ensureUserDir :: IO ()
 ensureUserDir = userdir >>= createDirectoryIfMissing True
 
+-- | Exit with the correct exit code - 0 is the argument is a 'Success', non-0
+-- otherwise.
+exit :: CommandResult -> IO a
+exit (Success _)= exitSuccess
+exit (MultipleResults res) = case filterErrors res of
+                             [] -> exitSuccess
+                             _ -> exitFailure
+exit _ = exitFailure
+
+-- | Returns all non-'Success' values from a list of 'CommandResult' values.
+filterErrors :: [CommandResult] -> [CommandResult]
+filterErrors = filter isError
+  where isError (Success _) = False
+        isError (MultipleResults res) = any isError res
+        isError _ = True
+
 interactWithPlaylist :: String -- ^ The playlists name
                      -> Bool -- ^ Whether to create the playlist
-                     -> (Playlist -> Either CommandError Playlist) -- ^ A function that changes the playlist
+                     -> (Playlist -> Either CommandResult Playlist) -- ^ A function that changes the playlist
                      -> String -- ^ A message for the user upon successful execution
                      -> IO CommandResult
 interactWithPlaylist name create f message = do
@@ -42,18 +58,18 @@ interactWithPlaylist name create f message = do
   case playlist of
    (Right pl) -> modifyPlaylist pl
    (Left e@(PlaylistDoesNotExist _)) -> if not create
-                                      then return $ Left e
+                                      then return e
                                       else createNewPlaylist >>= modifyPlaylist
-   (Left e@_) -> return (Left e)
+   (Left e@_) -> return e
   where modifyPlaylist :: Playlist -> IO CommandResult
         modifyPlaylist pl = case f pl of
-          (Left e) -> return (Left e)
-          (Right newplaylist) -> writePlaylist newplaylist >> return (Right message)
+          (Left e) -> return e
+          (Right newplaylist) -> writePlaylist newplaylist >> return (Success message)
         createNewPlaylist :: IO Playlist
         createNewPlaylist = do
           time <- getCurrentTime
           return $ Playlist name Nothing time []
-        readExistingPlaylist :: IO (Either CommandError Playlist)
+        readExistingPlaylist :: IO (Either CommandResult Playlist)
         readExistingPlaylist = liftM (maybe
                                       (Left (DecodingFailed name))
                                       Right)
@@ -66,17 +82,17 @@ makePlaylistFileName plname = let filename = if hasExtension plname then plname
                                              else plname <.> edaboExtension
                               in flip combine filename <$> userdir
 
--- | Print CommandErrors in a human readable format.
-printError :: CommandError -> IO ()
-printError (PlaylistDoesNotExist name) = putStrLn ("The playlist "
+-- | Print CommandResults in a human readable format.
+printResult :: CommandResult -> IO ()
+printResult (PlaylistDoesNotExist name) = putStrLn ("The playlist "
                                                 ++ name
                                                 ++ " does not exist")
-printError (MissingMetadata metas song) = putStrLn ("The song "
+printResult (MissingMetadata metas song) = putStrLn ("The song "
                                                 ++ show song
                                                 ++ " is missing the following metadata"
                                                 ++ intercalate ", " (map show metas)
                                                 )
-printError (MissingTracks tracks) = putStrLn ("The following tracks are missing:"
+printResult (MissingTracks tracks) = putStrLn ("The following tracks are missing:"
                                           ++ "\n"
                                           ++ unlines (map
                                                       trackLinks
@@ -90,17 +106,17 @@ printError (MissingTracks tracks) = putStrLn ("The following tracks are missing:
                                          ++ show rtid
                                        Nothing -> ""
                                        ]
-printError (MPDFailure e) = putStrLn ("The following error occured while\
+printResult (MPDFailure e) = putStrLn ("The following error occured while\
                                    \ communicating with MPD: "
                                     ++ show e)
-printError NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
-printError (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
-printError (OtherError e) = putStrLn e
-printError (MultipleErrors errors) = mapM_ printError errors
-printError (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
+printResult NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
+printResult (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
+printResult (OtherError e) = putStrLn e
+printResult (MultipleResults errors) = mapM_ printResult errors
+printResult (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
                                             ++ name
                                             ++ " failed")
-printError e = print e
+printResult e = print e
 
 -- | Open a playlists by its absolute path and try to decode it into a
 -- 'Playlist' object

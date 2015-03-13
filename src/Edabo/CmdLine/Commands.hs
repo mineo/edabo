@@ -12,7 +12,7 @@ import           Data.Monoid                (mconcat)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
 import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
-                                             CommandError (..), CommandResult,
+                                             CommandResult (..),
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
                                              LoadOptions (..), PathOptions (..),
@@ -27,6 +27,7 @@ import           Edabo.Types                (Playlist (Playlist), Track,
                                              recordingID, releaseTrackID)
 import           Edabo.Utils                (edaboExtension,
                                              interactWithPlaylist,
+                                             filterErrors,
                                              makePlaylistFileName,
                                              readPlaylistByName, userdir,
                                              writePlaylist)
@@ -43,7 +44,7 @@ addToPlaylist AddToPlaylistOptions {..} = do
                         then getTracksFromPlaylist
                         else currentTrackAsList
   case currentplaylist of
-   (Left e) -> return $ Left e
+   (Left e) -> return $ e
    (Right currenttracks) -> liftM
                             mconcat
                             (mapM (\name -> add name currenttracks)
@@ -52,13 +53,13 @@ addToPlaylist AddToPlaylistOptions {..} = do
     add :: String -> [Track] -> IO CommandResult
     add name tracks = interactWithPlaylist name atpOptCreate (update tracks)
                       ("Updated " ++ name)
-    currentTrackAsList :: IO (Either CommandError [Track])
+    currentTrackAsList :: IO (Either CommandResult [Track])
     currentTrackAsList = do
       t <- getCurrentTrack
       either (return . Left) (\track -> return $ Right [track]) t
     update :: [Track] -- ^ The new tracks
            -> Playlist -- ^ The playlist that's about to be updated
-           -> Either CommandError Playlist
+           -> Either CommandResult Playlist
     update newtracks playlist@Playlist{plTracks = currentTracks} =
       Right $ playlist {plTracks = currentTracks ++ checkPlaylistForCompletion currentTracks newtracks}
 
@@ -67,12 +68,12 @@ deletePlaylist DeletePlaylistOptions {optPlaylistToDeleteName = plname} = do
   plfilename <- makePlaylistFileName plname
   ifM (doesFileExist plfilename)
       (remove plfilename)
-      (return $ Left $ PlaylistDoesNotExist plname)
+      (return $ PlaylistDoesNotExist plname)
   where remove :: FilePath -> IO CommandResult
-        remove filename = removeFile filename >> return (Right filename)
+        remove filename = removeFile filename >> return (Success filename)
 
 edit :: EditPlaylistOptions -> IO CommandResult
-edit EditPlaylistOptions { epDescription = Nothing } = return $ Right "nothing to update"
+edit EditPlaylistOptions { epDescription = Nothing } = return $ Success "nothing to update"
 edit EditPlaylistOptions {..} = interactWithPlaylist
                                 epName
                                 False
@@ -82,7 +83,7 @@ edit EditPlaylistOptions {..} = interactWithPlaylist
 list :: IO CommandResult
 list = do
   now <- getCurrentTime
-  playlistActor (Right
+  playlistActor (Success
                 . B.unpack
                 . encodePretty
                 . Playlist "current" (Just "the current playlist") now
@@ -92,18 +93,17 @@ listPlaylists :: IO CommandResult
 listPlaylists = userdir
             >>= getDirectoryContents
             >>= mapM makeDescription . filterPlaylistFiles
-            >>= \ds -> case partitionEithers ds of
-                         ([], rs) -> return $ Right $ unlines rs
-                         (ls, _) -> return $ Left $ OtherError $ unlines $ map show ls
+            >>= \ds -> case filterErrors ds of
+                         [] -> return $ MultipleResults ds
+                         errors -> return $ OtherError $ unlines $ map show errors
   where filterPlaylistFiles :: [FilePath] -> [FilePath]
         filterPlaylistFiles = filter ((== edaboExtension) . tailDef "" . takeExtension)
         makeDescription :: FilePath -> IO CommandResult
         makeDescription filename = readPlaylistByName filename
                                    >>= \x -> case x  of
                                                Nothing -> return
-                                                          $ Left
                                                           $ DecodingFailed filename
-                                               Just pl -> return $ Right $ printableDescription pl
+                                               Just pl -> return $ Success $ printableDescription pl
         printableDescription :: Playlist -> String
         printableDescription pl = unwords [ plName pl
                                           , "-"
@@ -117,9 +117,9 @@ load :: LoadOptions -> IO CommandResult
 load LoadOptions {..} = do
    cleared <- if optClear then clearMPDPlaylist else return (return ())
    case cleared of
-     (Left l)-> return $ Left $ OtherError $ show l
+     (Left l)-> return $ OtherError $ show l
      Right _ -> readPlaylistByName optPlaylist >>= (\f -> case f of
-                    Nothing       -> return $ Left $ DecodingFailed optPlaylist
+                    Nothing       -> return $ DecodingFailed optPlaylist
                     Just playlist -> do
                       let pltracks = plTracks playlist
                       void $ loadPlaylistIgnoringResults pltracks
@@ -135,20 +135,20 @@ load LoadOptions {..} = do
                                  Right tracks -> void $ completionCase tracks pl (\missings -> doLoad missings MUSICBRAINZ_TRACKID (Just . recordingID))
          doLoad :: [Track] -> Metadata -> (Track -> Maybe UUID) -> IO [Response ()]
          doLoad trs meta uuidgetter = sequence $ loadMPDPlaylist trs meta uuidgetter
-         completionCase :: (Monad m) => [Track] -> [Track] -> ([Track] -> m a) -> m a
+         completionCase :: [Track] -> [Track] -> ([Track] -> t) -> t
          completionCase current expected f = f $ checkPlaylistForCompletion current expected
          reportNotFounds :: [Track] -> CommandResult
          reportNotFounds xs = case xs of
-                                [] -> Right "Loaded all tracks"
-                                (_:_) -> Left $ MissingTracks xs
+                                [] -> Success "Loaded all tracks"
+                                (_:_) -> MissingTracks xs
 
 path :: PathOptions -> IO CommandResult
 path PathOptions {..} = do
   plpath <- makePlaylistFileName pName
   exists <- doesFileExist plpath
   return (if exists
-             then Right plpath
-             else Left (PlaylistDoesNotExist pName))
+             then Success plpath
+             else PlaylistDoesNotExist pName)
 
 save :: SaveOptions -> IO CommandResult
 save SaveOptions {..} = do
@@ -159,12 +159,12 @@ save SaveOptions {..} = do
   if exists
      then if optOverWrite
              then writer
-             else return (Left $ NotOverwritingPlaylist optPlaylistName)
+             else return (NotOverwritingPlaylist optPlaylistName)
      else writer
   where write :: UTCTime -> IO CommandResult
         write time = getTracksFromPlaylist
-                        >>= either (return . Left)
+                        >>= either return
                                    (\tracks -> writefile time tracks
-                                            >> return (Right ("Wrote " ++ optPlaylistName)))
+                                            >> return (Success ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()
         writefile time tracks = writePlaylist $ Playlist optPlaylistName optDescription time tracks

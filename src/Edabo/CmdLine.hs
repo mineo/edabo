@@ -1,7 +1,6 @@
 module Edabo.CmdLine where
 
-import           Control.Applicative    ((<$>), (<*>))
-import           Control.Applicative    (many)
+import           Control.Applicative    ((<$>), (<*>), many)
 import           Data.Monoid            ((<>))
 import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, edit,
                                          list, listPlaylists, load, path, save)
@@ -11,13 +10,12 @@ import           Edabo.CmdLine.Types    (AddToPlaylistOptions (..),
                                          EditPlaylistOptions (..),
                                          LoadOptions (..), Options (..),
                                          PathOptions (..), SaveOptions (..))
-import           Edabo.Utils            (printError)
+import           Edabo.Utils            (exit, printResult)
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
                                          long, metavar, optional, progDesc,
                                          pure, short, str, strOption, subparser,
                                          switch)
-import           System.Exit            (exitFailure)
 
 parseAddToPlaylist :: Parser Command
 parseAddToPlaylist = AddToPlaylist
@@ -141,7 +139,7 @@ handleArgs = execParser opts >>= run
           )
 
 run :: Options -> IO ()
-run Options {optCommand = cmd} = runCmd >>= either exitWithError putStrLn
+run Options {optCommand = cmd} = runCmd >>= quit
   where runCmd = case cmd of
                    List -> list
                    ListPlaylists -> listPlaylists
@@ -151,6 +149,6 @@ run Options {optCommand = cmd} = runCmd >>= either exitWithError putStrLn
                    AddToPlaylist options -> addToPlaylist options
                    EditPlaylist options -> edit options
                    PlaylistPath options -> path options
-        exitWithError e = do
-          printError e
-          exitFailure
+        quit e = do
+          printResult e
+          exit e

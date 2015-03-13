@@ -7,7 +7,7 @@ import           Data.String                     (fromString)
 import           Data.UUID                       (UUID)
 import qualified Data.UUID                       (toString)
 import qualified Data.UUID                       as UUID
-import           Edabo.CmdLine.Types             (CommandError (..))
+import           Edabo.CmdLine.Types             (CommandResult (..))
 import           Edabo.Types                     (Track (..), makeTrack)
 import           Network.MPD                     (Metadata (MUSICBRAINZ_ALBUMID, MUSICBRAINZ_TRACKID, MUSICBRAINZ_RELEASETRACKID),
                                                   Response, Song (..), add,
@@ -27,7 +27,7 @@ getMPDPlaylist = withMPD getPlaylist
 
 -- | Tries to convert from 'Song' to 'Track'.
 getTrackFromSong :: Song
-                 -> Either CommandError Track
+                 -> Either CommandResult Track
 getTrackFromSong song@(Song {sgIndex = Just _}) =
                       let recordingid    = sgGetTag MUSICBRAINZ_TRACKID song
                           releaseid      = sgGetTag MUSICBRAINZ_ALBUMID song
@@ -48,7 +48,7 @@ getTrackFromSong song@Song {sgIndex = Nothing} =
                  Left $ InvalidInfo "The song has no position in the playlist" song
 
 -- | Gets the current 'Song', converted to a 'Track'.
-getCurrentTrack :: IO (Either CommandError Track)
+getCurrentTrack :: IO (Either CommandResult Track)
 getCurrentTrack = do
   response <- withMPD currentSong
   case response of
@@ -59,22 +59,22 @@ getCurrentTrack = do
 
 -- | Tries to convert multiple 'Song's to 'Track's.
 getTracksFromSongs :: [Song]
-                   -> [Either CommandError Track]
+                   -> [Either CommandResult Track]
 getTracksFromSongs = map getTrackFromSong
 
 
 -- | Gets the 'Tracks' that are currently in the playlist.
-getTracksFromPlaylist :: IO (Either CommandError [Track])
+getTracksFromPlaylist :: IO (Either CommandResult [Track])
 getTracksFromPlaylist = do
   playlist <- getMPDPlaylist
   let res = case playlist of
               Left e -> Left $ MPDFailure e
               Right songs -> trackListOrError $ getTracksFromSongs songs
   return res
-  where trackListOrError :: [Either CommandError Track]
-                         -> Either CommandError [Track]
+  where trackListOrError :: [Either CommandResult Track]
+                         -> Either CommandResult [Track]
         trackListOrError tl = case partitionEithers tl of
-                                (lefts@(_:_), _) -> Left $ MultipleErrors lefts
+                                (lefts@(_:_), _) -> Left $ MultipleResults lefts
                                 (_, rights) -> Right rights
 
 -- | Loads a list of 'Track's into the current playlist.
