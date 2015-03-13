@@ -65,6 +65,8 @@ data CommandResult
 
 instance Monoid CommandResult where
   mempty = Success ""
+  mappend (Success "") a = a
+  mappend a (Success "") = a
   mappend (MultipleResults a) (MultipleResults b) = MultipleResults (a ++ b)
   mappend (MultipleResults a) b = MultipleResults (a ++ [b])
   mappend a (MultipleResults b) = MultipleResults (a : b)
