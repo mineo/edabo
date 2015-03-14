@@ -1,16 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
-import           Control.Monad              (void)
-import           Control.Monad              (liftM)
+import           Control.Monad              (void, liftM)
 import           Control.Monad.Extra        (ifM)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
-import           Data.Either                (partitionEithers)
 import           Data.Maybe                 (fromMaybe)
 import           Data.Monoid                (mconcat)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID)
+import           Data.UUID.V4               (nextRandom)
 import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              CommandResult (..),
                                              DeletePlaylistOptions (..),
@@ -25,9 +24,8 @@ import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
 import           Edabo.Types                (Playlist (Playlist), Track,
                                              plDescription, plName, plTracks,
                                              recordingID, releaseTrackID)
-import           Edabo.Utils                (edaboExtension,
+import           Edabo.Utils                (edaboExtension, filterErrors,
                                              interactWithPlaylist,
-                                             filterErrors,
                                              makePlaylistFileName,
                                              readPlaylistByName, userdir,
                                              writePlaylist)
@@ -44,7 +42,7 @@ addToPlaylist AddToPlaylistOptions {..} = do
                         then getTracksFromPlaylist
                         else currentTrackAsList
   case currentplaylist of
-   (Left e) -> return $ e
+   (Left e) -> return e
    (Right currenttracks) -> liftM
                             mconcat
                             (mapM (\name -> add name currenttracks)
@@ -83,10 +81,12 @@ edit EditPlaylistOptions {..} = interactWithPlaylist
 list :: IO CommandResult
 list = do
   now <- getCurrentTime
-  playlistActor (Success
-                . B.unpack
-                . encodePretty
-                . Playlist "current" (Just "the current playlist") now
+  newuuid <- nextRandom
+  playlistActor (\tracks ->
+                  Success
+                $ B.unpack
+                $ encodePretty
+                $ Playlist "current" (Just "the current playlist") now tracks newuuid
                 )
 
 listPlaylists :: IO CommandResult
@@ -167,4 +167,6 @@ save SaveOptions {..} = do
                                    (\tracks -> writefile time tracks
                                             >> return (Success ("Wrote " ++ optPlaylistName)))
         writefile :: UTCTime -> [Track] -> IO ()
-        writefile time tracks = writePlaylist $ Playlist optPlaylistName optDescription time tracks
+        writefile time tracks = do
+          newuuid <- nextRandom
+          writePlaylist $ Playlist optPlaylistName optDescription time tracks newuuid

@@ -9,6 +9,7 @@ import           Data.Aeson.Encode              (encode)
 import qualified Data.ByteString.Lazy           as B
 import           Data.List                      (intercalate)
 import           Data.Time                      (getCurrentTime)
+import           Data.UUID.V4                   (nextRandom)
 import           Edabo.CmdLine.Types            (CommandResult (..))
 import           Edabo.Types                    (Playlist (..), Track (..))
 import           System.Directory               (createDirectoryIfMissing,
@@ -68,7 +69,8 @@ interactWithPlaylist name create f message = do
         createNewPlaylist :: IO Playlist
         createNewPlaylist = do
           time <- getCurrentTime
-          return $ Playlist name Nothing time []
+          newuuid <- nextRandom
+          return $ Playlist name Nothing time [] newuuid
         readExistingPlaylist :: IO (Either CommandResult Playlist)
         readExistingPlaylist = liftM (maybe
                                       (Left (DecodingFailed name))

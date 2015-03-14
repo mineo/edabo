@@ -48,6 +48,7 @@ data Playlist = Playlist
   , plDescription :: Maybe String
   , plTimestamp   :: UTCTime
   , plTracks      :: [Track]
+  , plUUID        :: UUID
   }
 
 instance FromJSON Playlist where
@@ -56,9 +57,11 @@ instance FromJSON Playlist where
                          <*> v .:? "description"
                          <*> v .:  "timestamp"
                          <*> v .:  "tracklist"
+                         <*> v .:  "uuid"
   parseJSON _ = mzero
 
 instance ToJSON Playlist where
   toJSON Playlist {..} =
     object ["name" .= plName, "description" .= plDescription,
-            "timestamp" .= plTimestamp, "tracklist" .= plTracks]
+            "timestamp" .= plTimestamp, "tracklist" .= plTracks,
+            "uuid" .= plUUID]
