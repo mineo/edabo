@@ -91,7 +91,8 @@ printResult (PlaylistDoesNotExist name) = putStrLn ("The playlist "
                                                 ++ " does not exist")
 printResult (MissingMetadata metas song) = putStrLn ("The song "
                                                 ++ show song
-                                                ++ " is missing the following metadata"
+                                                ++ " is missing the following\
+                                                   \ metadata: "
                                                 ++ intercalate ", " (map show metas)
                                                 )
 printResult (MissingTracks tracks) = putStrLn ("The following tracks are missing:"
