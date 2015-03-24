@@ -158,10 +158,19 @@ save SaveOptions {..} = do
   let writer = write now
   if exists
      then if optOverWrite
-             then writer
+             -- By using interactWithPlaylist, the playlist gets overwritten,
+             -- but keeps its UUID.
+             then getTracksFromPlaylist
+                     >>= either return (\tracks -> interactWithPlaylist
+                                                   optPlaylistName
+                                                   False
+                                                   (Right . overwriteTracks tracks)
+                                                   ("Wrote " ++ optPlaylistName))
              else return (NotOverwritingPlaylist optPlaylistName)
      else writer
-  where write :: UTCTime -> IO CommandResult
+  where overwriteTracks :: [Track] -> Playlist -> Playlist
+        overwriteTracks tracks playlist = playlist {plTracks = tracks}
+        write :: UTCTime -> IO CommandResult
         write time = getTracksFromPlaylist
                         >>= either return
                                    (\tracks -> writefile time tracks
