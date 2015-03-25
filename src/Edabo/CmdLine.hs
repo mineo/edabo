@@ -3,13 +3,15 @@ module Edabo.CmdLine where
 import           Control.Applicative    ((<$>), (<*>), many)
 import           Data.Monoid            ((<>))
 import           Edabo.CmdLine.Commands (addToPlaylist, deletePlaylist, edit,
-                                         list, listPlaylists, load, path, save)
+                                         list, listPlaylists, load, path, save,
+                                         upload)
 import           Edabo.CmdLine.Types    (AddToPlaylistOptions (..),
                                          Command (..),
                                          DeletePlaylistOptions (..),
                                          EditPlaylistOptions (..),
                                          LoadOptions (..), Options (..),
-                                         PathOptions (..), SaveOptions (..))
+                                         PathOptions (..), SaveOptions (..),
+                                         UploadOptions (..))
 import           Edabo.Utils            (exit, printResult)
 import           Options.Applicative    (Parser, argument, command, execParser,
                                          fullDesc, header, help, helper, info,
@@ -103,6 +105,13 @@ parseEditPlaylist = EditPlaylist
                         ))
                         )
 
+parseUpload :: Parser Command
+parseUpload = Upload
+              <$> (UploadOptions
+                  <$> argument str
+                  ( metavar "NAME"
+                  <> help "the playlists name"))
+
 subCommandParser :: Parser Command
 subCommandParser = subparser
            (command "listplaylist" (info (withHelper parseList)
@@ -121,6 +130,8 @@ subCommandParser = subparser
                               (progDesc "edit some information about a playlist"))
            <> command "path" (info (withHelper parsePath)
                                (progDesc "show the full path to a playlist file"))
+           <> command "upload" (info (withHelper parseUpload)
+                                (progDesc "upload a playlist"))
            )
            where withHelper f = helper <*> f
 
@@ -149,6 +160,7 @@ run Options {optCommand = cmd} = runCmd >>= quit
                    AddToPlaylist options -> addToPlaylist options
                    EditPlaylist options -> edit options
                    PlaylistPath options -> path options
+                   Upload options -> upload options
         quit e = do
           printResult e
           exit e

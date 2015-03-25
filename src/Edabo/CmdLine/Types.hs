@@ -2,9 +2,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Edabo.CmdLine.Types where
 
-import           Edabo.Types (Track)
-import           Network.MPD (MPDError, Metadata, Song)
-import Data.Monoid (Monoid (..))
+import           Data.Monoid         (Monoid (..))
+import           Edabo.Types         (Track)
+import           Network.HTTP.Client (HttpException)
+import           Network.MPD         (MPDError, Metadata, Song)
 
 data Options = Options
   { optVerbose :: Bool
@@ -39,6 +40,10 @@ data PathOptions = PathOptions
   { pName :: String
   }
 
+data UploadOptions = UploadOptions
+  { upName :: String
+  }
+
 data Command
   = List
   | ListPlaylists
@@ -48,10 +53,12 @@ data Command
   | AddToPlaylist AddToPlaylistOptions
   | EditPlaylist EditPlaylistOptions
   | PlaylistPath PathOptions
+  | Upload UploadOptions
 
 data CommandResult
   = PlaylistDoesNotExist String
   | InvalidInfo String Song
+  | HttpError HttpException
   | MissingMetadata [Metadata] Song
   | MissingTracks [Track]
   | MPDFailure MPDError
@@ -61,7 +68,7 @@ data CommandResult
   | MultipleResults [CommandResult]
   | DecodingFailed String
   | Success String
-    deriving (Show, Eq)
+    deriving (Show)
 
 instance Monoid CommandResult where
   mempty = Success ""

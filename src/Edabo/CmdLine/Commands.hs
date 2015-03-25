@@ -1,27 +1,29 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.CmdLine.Commands where
 
-import           Control.Monad              (void, liftM)
+import           Control.Exception          (handle)
+import           Control.Monad              (liftM, void)
 import           Control.Monad.Extra        (ifM)
+import           Data.Aeson                 (toJSON)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Maybe                 (fromMaybe)
 import           Data.Monoid                (mconcat)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
-import           Data.UUID                  (UUID)
+import           Data.UUID                  (UUID, toString)
 import           Data.UUID.V4               (nextRandom)
 import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              CommandResult (..),
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
                                              LoadOptions (..), PathOptions (..),
-                                             SaveOptions (..))
+                                             SaveOptions (..), UploadOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
                                              getTracksFromPlaylist,
                                              loadMPDPlaylist)
-import           Edabo.Types                (Playlist (Playlist), Track,
+import           Edabo.Types                (Playlist (..), Track,
                                              plDescription, plName, plTracks,
                                              recordingID, releaseTrackID)
 import           Edabo.Utils                (edaboExtension, filterErrors,
@@ -29,8 +31,10 @@ import           Edabo.Utils                (edaboExtension, filterErrors,
                                              makePlaylistFileName,
                                              readPlaylistByName, userdir,
                                              writePlaylist)
+import           Network.HTTP.Client        (HttpException)
 import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
                                              Response)
+import           Network.Wreq               (post)
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
@@ -179,3 +183,20 @@ save SaveOptions {..} = do
         writefile time tracks = do
           newuuid <- nextRandom
           writePlaylist $ Playlist optPlaylistName optDescription time tracks newuuid
+
+upload :: UploadOptions -> IO CommandResult
+upload UploadOptions {..} = do
+  readPlaylist <- readPlaylistByName upName
+  case readPlaylist of
+   Nothing -> return $ DecodingFailed upName
+   (Just pl) -> doUpload pl
+  where doUpload playlist =
+          handle handleHTTPException $ do
+            -- Wreq throws exceptions for almost everything, so just ignore the
+            -- response for now.
+            _ <- post ("http://localhost:5000/playlist/" ++
+                     toString (plUUID playlist))
+               (toJSON playlist)
+            return $ Success "upload successful"
+        handleHTTPException :: HttpException -> IO CommandResult
+        handleHTTPException e = return $ HttpError e
