@@ -114,26 +114,19 @@ parseUpload = Upload
 
 subCommandParser :: Parser Command
 subCommandParser = subparser
-           (command "listplaylist" (info (withHelper parseList)
-                                    (progDesc "print the playlist, JSON-style"))
-           <> command "save" (info (withHelper parseSave)
-                              (progDesc "save the playlist"))
-           <> command "load" (info (withHelper parseLoad)
-                              (progDesc "load a playlist"))
-           <> command "list" (info (withHelper parseListPlaylists)
-                              (progDesc "list all available playlists"))
-           <> command "delete" (info (withHelper parseDeletePlaylist)
-                                (progDesc "delete a playlist"))
-           <> command "add" (info (withHelper parseAddToPlaylist)
-                             (progDesc "add tracks to an existing playlist"))
-           <> command "edit" (info (withHelper parseEditPlaylist)
-                              (progDesc "edit some information about a playlist"))
-           <> command "path" (info (withHelper parsePath)
-                               (progDesc "show the full path to a playlist file"))
-           <> command "upload" (info (withHelper parseUpload)
-                                (progDesc "upload a playlist"))
+           (makeCommand "listplaylist" parseList "print the playlist, JSON-style"
+           <> makeCommand "save" parseSave "save the playlist"
+           <> makeCommand "load" parseLoad "load a playlist"
+           <> makeCommand "list" parseListPlaylists "list all available playlists"
+           <> makeCommand "delete" parseDeletePlaylist "delete a playlist"
+           <> makeCommand "add" parseAddToPlaylist "add tracks to an existing playlist"
+           <> makeCommand "edit" parseEditPlaylist "edit some information about a playlist"
+           <> makeCommand "path" parsePath "show the full path to a playlist file"
+           <> makeCommand "upload" parseUpload "upload a playlist"
            )
            where withHelper f = helper <*> f
+                 makeCommand name f desc = command name (info (withHelper f)
+                                                         (progDesc desc))
 
 globalParser :: Parser Options
 globalParser = Options
