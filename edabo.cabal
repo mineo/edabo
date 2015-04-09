@@ -21,17 +21,17 @@ executable edabo
   -- other-extensions:    
   build-depends:       aeson >= 0.8.0.0 && < 0.9
                      , aeson-pretty >= 0.7.1 && < 0.8
-                     , base >=4.7 && <4.8
+                     , base >=4.7 && < 4.9
                      , bytestring >= 0.10.4.0 && < 0.11
-                     , directory == 1.2.1.0
+                     , directory >= 1.2.1.0 && < 1.3
                      , extra == 1.0.1
-                     , filepath == 1.3.0.2
+                     , filepath >= 1.3.0.2 && < 1.5
                      , http-client==0.4.9
                      , http-types==0.8.6
                      , libmpd >= 0.9.0.1 && < 0.10
                      , optparse-applicative >= 0.9.1.1 && < 0.12
                      , safe == 0.3.8
-                     , time == 1.4.2
+                     , time >= 1.4.2 && < 1.7
                      , uuid >= 1.3.3 && < 1.4
                      , uuid-aeson == 0.1.0.0
                      , wreq==0.3.0.1
