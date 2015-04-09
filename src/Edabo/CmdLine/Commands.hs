@@ -8,7 +8,6 @@ import           Data.Aeson                 (toJSON)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Maybe                 (fromMaybe)
-import           Data.Monoid                (mconcat)
 import           Data.Time                  (UTCTime (..), getCurrentTime)
 import           Data.UUID                  (UUID, toString)
 import           Data.UUID.V4               (nextRandom)
@@ -17,7 +16,8 @@ import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
                                              LoadOptions (..), PathOptions (..),
-                                             SaveOptions (..), UploadOptions (..))
+                                             SaveOptions (..),
+                                             UploadOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,

@@ -1,15 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Edabo.Types where
 
-import           Control.Applicative ((<$>), (<*>))
-import           Control.Monad       (mzero)
-import           Data.Aeson          (FromJSON, ToJSON, Value (..), object,
-                                      parseJSON, toJSON, (.:), (.:?), (.=))
-import           Data.Maybe          (fromJust)
-import           Data.Time           (UTCTime (..))
-import           Data.UUID           (UUID, fromString)
-import           Data.UUID.Aeson     ()
+import           Control.Monad   (mzero)
+import           Data.Aeson      (FromJSON, ToJSON, Value (..), object,
+                                  parseJSON, toJSON, (.:), (.:?), (.=))
+import           Data.Maybe      (fromJust)
+import           Data.Time       (UTCTime (..))
+import           Data.UUID       (UUID, fromString)
+import           Data.UUID.Aeson ()
 
 data Track = Track
   { recordingID    :: UUID
