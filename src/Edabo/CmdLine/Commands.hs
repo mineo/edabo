@@ -105,9 +105,10 @@ listPlaylists = userdir
         makeDescription :: FilePath -> IO CommandResult
         makeDescription filename = readPlaylistByName filename
                                    >>= \x -> case x  of
-                                               Nothing -> return
-                                                          $ DecodingFailed filename
-                                               Just pl -> return $ Success $ printableDescription pl
+                                               Left err -> return
+                                                          $ DecodingFailed
+                                                          filename err
+                                               Right pl -> return $ Success $ printableDescription pl
         printableDescription :: Playlist -> String
         printableDescription pl = unwords [ plName pl
                                           , "-"
@@ -123,8 +124,8 @@ load LoadOptions {..} = do
    case cleared of
      (Left l)-> return $ OtherError $ show l
      Right _ -> readPlaylistByName optPlaylist >>= (\f -> case f of
-                    Nothing       -> return $ DecodingFailed optPlaylist
-                    Just playlist -> do
+                    Left err       -> return $ DecodingFailed optPlaylist err
+                    Right playlist -> do
                       let pltracks = plTracks playlist
                       void $ loadPlaylistIgnoringResults pltracks
                       playlistActor $ \loadedTracks -> completionCase loadedTracks pltracks reportNotFounds
@@ -188,8 +189,8 @@ upload :: UploadOptions -> IO CommandResult
 upload UploadOptions {..} = do
   readPlaylist <- readPlaylistByName upName
   case readPlaylist of
-   Nothing -> return $ DecodingFailed upName
-   (Just pl) -> doUpload pl
+   Left err -> return $ DecodingFailed upName err
+   Right pl -> doUpload pl
   where doUpload playlist =
           handle handleHTTPException $ do
             -- Wreq throws exceptions for almost everything, so just ignore the

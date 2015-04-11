@@ -4,7 +4,7 @@ module Edabo.Utils where
 import           Control.Applicative            ((<$>))
 import           Control.Monad                  (liftM)
 import           Control.Monad.Extra            (ifM)
-import           Data.Aeson                     (decode)
+import           Data.Aeson                     (eitherDecode)
 import           Data.Aeson.Encode              (encode)
 import qualified Data.ByteString.Lazy           as B
 import           Data.List                      (intercalate)
@@ -72,9 +72,10 @@ interactWithPlaylist name create f message = do
           newuuid <- nextRandom
           return $ Playlist name Nothing time [] newuuid
         readExistingPlaylist :: IO (Either CommandResult Playlist)
-        readExistingPlaylist = liftM (maybe
-                                      (Left (DecodingFailed name))
-                                      Right)
+        readExistingPlaylist = liftM (\res -> case res of
+                                       (Left err) -> Left (DecodingFailed name err)
+
+                                       (Right pl) -> Right pl)
                                (readPlaylistByName name)
 
 -- | Builds the absolute filename of a playlist from its name.
@@ -116,21 +117,22 @@ printResult NoCurrentSong = putStrLn "No song is in MPDs playlist at the moment"
 printResult (NotOverwritingPlaylist name) = putStrLn ("Did not overwrite " ++ name)
 printResult (OtherError e) = putStrLn e
 printResult (MultipleResults errors) = mapM_ printResult errors
-printResult (DecodingFailed name) = putStrLn ("Decoding the JSON content of "
+printResult (DecodingFailed name reason) = putStrLn ("Decoding the JSON content of "
                                             ++ name
-                                            ++ " failed")
+                                            ++ " failed for the following reason: "
+                                            ++ reason)
 printResult (Success msg) = putStrLn msg
 printResult (HttpError exc) = print exc
 
 -- | Open a playlists by its absolute path and try to decode it into a
 -- 'Playlist' object
-readPlaylist :: FilePath -> IO (Maybe Playlist)
-readPlaylist filename = liftM decode (B.readFile filename)
+readPlaylist :: FilePath -> IO (Either String Playlist)
+readPlaylist filename = liftM eitherDecode (B.readFile filename)
 
 -- | Like 'readPlaylist', only that the the playlist is opened by only its name,
 -- not absolute path
 readPlaylistByName :: FilePath -- ^ The playlists name
-                   -> IO (Maybe Playlist)
+                   -> IO (Either String Playlist)
 readPlaylistByName name = makePlaylistFileName name >>= readPlaylist
 
 -- | Write a 'Playlist' to a file. The filename will be deduced from the playlists

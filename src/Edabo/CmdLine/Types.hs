@@ -66,7 +66,7 @@ data CommandResult
   | NotOverwritingPlaylist String
   | OtherError String
   | MultipleResults [CommandResult]
-  | DecodingFailed String
+  | DecodingFailed FilePath String
   | Success String
     deriving (Show)
 
