@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Edabo.Utils where
 
+import           Control.Applicative            ((<$>))
 import           Control.Monad                  (liftM)
 import           Control.Monad.Extra            (ifM)
 import           Data.Aeson                     (decode)

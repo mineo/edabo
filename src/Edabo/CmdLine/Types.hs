@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Edabo.CmdLine.Types where
 
+import           Data.Monoid         (Monoid (..))
 import           Edabo.Types         (Track)
 import           Network.HTTP.Client (HttpException)
 import           Network.MPD         (MPDError, Metadata, Song)
