@@ -1,10 +1,11 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Edabo.CmdLine.Commands where
 
 import           Control.Exception          (handle)
 import           Control.Monad              (liftM, void)
 import           Control.Monad.Extra        (ifM)
-import           Data.Aeson                 (toJSON)
+import           Data.Aeson                 (encode, toJSON)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Maybe                 (fromMaybe)
@@ -17,7 +18,8 @@ import           Edabo.CmdLine.Types        (AddToPlaylistOptions (..),
                                              DeletePlaylistOptions (..),
                                              EditPlaylistOptions (..),
                                              LoadOptions (..), PathOptions (..),
-                                             SaveOptions (..), UploadOptions (..))
+                                             SaveOptions (..),
+                                             UploadOptions (..))
 import           Edabo.Helpers              (checkPlaylistForCompletion,
                                              playlistActor)
 import           Edabo.MPD                  (clearMPDPlaylist, getCurrentTrack,
@@ -34,7 +36,7 @@ import           Edabo.Utils                (edaboExtension, filterErrors,
 import           Network.HTTP.Client        (HttpException)
 import           Network.MPD                (Metadata (MUSICBRAINZ_RELEASETRACKID, MUSICBRAINZ_TRACKID),
                                              Response)
-import           Network.Wreq               (post)
+import           Network.Wreq               (partLBS, post)
 import           Safe                       (tailDef)
 import           System.Directory           (doesFileExist,
                                              getDirectoryContents, removeFile)
@@ -197,7 +199,9 @@ upload UploadOptions {..} = do
             -- response for now.
             _ <- post ("http://localhost:5000/playlist/" ++
                      toString (plUUID playlist))
-               (toJSON playlist)
+                 -- Decoding the playlist was possible, therefore encoding it
+                 -- again *should* be safe.
+                 [partLBS "playlist" (encode (toJSON playlist))]
             return $ Success "upload successful"
         handleHTTPException :: HttpException -> IO CommandResult
         handleHTTPException e = return $ HttpError e
